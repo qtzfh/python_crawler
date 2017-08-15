@@ -16,8 +16,8 @@ headers = {
     'Host': 'www.zhihu.com',
     'DNT': '1'
 }
-phone = "18868807397"
-password = "123456789a"
+phone = "1886xxxxxxx"
+password = "xxxxx"
 
 session = requests.session()
 session.cookies = cookielib.LWPCookieJar(filename='cookies')
