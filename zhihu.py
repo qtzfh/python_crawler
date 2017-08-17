@@ -1,12 +1,13 @@
+# -*- coding:utf-8 -*-
 import requests
 import re
-import urllib
 import http.cookiejar as cookielib
 from PIL import Image
 import time
 import os.path
 from bs4 import BeautifulSoup
 import mysql_commit
+import datetime
 
 headers = {
     'Connection': 'Keep-Alive',
@@ -124,7 +125,7 @@ def insert_question():
         sql += "(\"%s\",\"%s\",\"%s\",NOW(),NOW())," % (
             href["/question/".__len__():href.index("/answer")], title, href[0:href.index("/answer")])
     sql = sql[:-1]
-    sql += "ON DUPLICATE KEY UPDATE title = title;"
+    sql += "ON DUPLICATE KEY UPDATE title = values(title);"
     mysql_commit.commit(sql)
 
 
@@ -140,23 +141,95 @@ def get_herf_detail(question_id):
     return (question_id, answer_num, follow_num, read_num)
 
 
-# 根据数据库的question获取每日数据变化
-def task_question_info():
+question_cursor = None
+
+
+def get_question_list():
     sql = "select id from zhihu_question"
     cursor = mysql_commit.commit(sql)
-    sql = "insert into zhihu_question_info(question_id,answer_num,follow_num,read_num,create_time,update_time) values"
-    for question in cursor.fetchall():
+    global question_cursor
+    question_cursor = cursor
+
+# 根据数据库的question获取每日数据变化
+def task_question_info():
+    if (question_cursor == None):
+        get_question_list()
+    sql = "insert into zhihu_question_info(question_id,answer_num,follow_num,read_num,create_time,update_time,task_day) values"
+    for question in question_cursor.fetchall():
         question_info = get_herf_detail(question[0])
-        sql += "(%s,%s,%s,%s,NOW(),NOW())," % (
+        sql += "(%s,%s,%s,%s,NOW(),NOW(),CURDATE())," % (
             question_info[0], question_info[1], question_info[2], question_info[3])
     sql = sql[:-1]
+    sql += "on DUPLICATE key UPDATE answer_num=values(answer_num), follow_num = VALUES(follow_num),read_num=values(read_num),create_time=values(create_time),update_time=values(update_time)"
     mysql_commit.commit(sql)
 
 
+def get_answer_info(question_id, offset):
+    limit = offset + 5
+    url = "https://www.zhihu.com/api/v4/questions/%s/answers?include=data[*].is_normal,admin_closed_comment,reward_info,is_collapsed," \
+          "annotation_action,annotation_detail,collapse_reason,is_sticky,collapsed_by,suggest_edit,comment_count,can_comment,content," \
+          "editable_content,voteup_count,reshipment_settings,comment_permission,created_time,updated_time,review_info,question,excerpt," \
+          "relationship.is_authorized,is_author,voting,is_thanked,is_nothelp,upvoted_followees;data[*].mark_infos[*].url;data[*]" \
+          ".author.follower_count,badge[?(type=best_answerer)].topics&offset=%s&limit=%s&sort_by=defaul" % (
+              question_id, offset, limit)
+    resp = session.get(url, headers=headers).json()
+    sql = "insert into zhihu_answer_info(id,question_id,agree_num,comment_num,content,url_token,author_name,created_time,create_time,update_time) values"
+    for i in range(5):
+        agree_num = resp['data'][i]['voteup_count']
+        comment_num = resp['data'][i]['comment_count']
+        content = resp['data'][i]['content']
+        url_token = resp['data'][i]['author']['url_token']
+        author_name = resp['data'][i]['author']['name']
+        created_time = resp['data'][i]['created_time']
+        answer_id = resp['data'][i]['id']
+        sql += "(%s,%s,%s,%s,\"%s\",\"%s\",\"%s\",\"%s\",NOW(),NOW())," % (
+            answer_id, question_id, agree_num, comment_num, content.replace("\"", "'"), url_token, author_name,
+            created_time)
+    sql = sql[:-1]
+    sql += "on DUPLICATE key UPDATE author_name=values(author_name), content = VALUES(content),agree_num=values(agree_num),comment_num=values(comment_num),url_token=values(url_token)"
+    mysql_commit.commit(sql)
+    if (resp['paging']['is_end'] == True):
+        return True
+    else:
+        return False
+
+
+def insert_answer_info():
+    if (question_cursor == None):
+        get_question_list()
+    i = 0
+    for question in question_cursor.fetchall():
+        while (True):
+            end = get_answer_info(question[0], i)
+            i = i + 5
+            if (end == True):
+                break
+    print("获取answer成功")
+
+# 每日3.15 运行task获取数据
+def task_all_work():
+    now = datetime.datetime.now()
+    sched_time = datetime.datetime(now.year, now.month, now.day, 3, 15, 0)
+    tomorrow = sched_time + datetime.timedelta(days=1)
+    print(tomorrow)
+    while True:
+        now = datetime.datetime.now()
+        print(now)
+        if sched_time < now < (sched_time + datetime.timedelta(minutes=2)):
+            sched_time = datetime.datetime(tomorrow.year, tomorrow.month, tomorrow.day, 3, 15, 0)
+            tomorrow = tomorrow + datetime.timedelta(days=1)
+            # 获取question_list并且insert
+            insert_question()
+            # 获取question_info 详细信息
+            task_question_info()
+            # 获取question_info下的内容
+            insert_answer_info()
+            # 运行完之后sleep 5min 保证不会再进入本次循环
+            time.sleep(300)
+        time.sleep(60)
+
 if __name__ == '__main__':
     if is_login():
-        # insert_question()
-        # get_herf_detail()
-        task_question_info()
+        task_all_work()
     else:
         login()
