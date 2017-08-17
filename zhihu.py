@@ -222,7 +222,7 @@ def task_all_work():
             insert_question()
             # 获取question_info 详细信息
             task_question_info()
-            # 获取question_info下的内容
+            # 获取question_info下的回答内容
             insert_answer_info()
             # 运行完之后sleep 5min 保证不会再进入本次循环
             time.sleep(300)
