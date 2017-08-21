@@ -6,9 +6,16 @@ from PIL import Image
 import time
 import os.path
 from bs4 import BeautifulSoup
-import mysql_commit
 import datetime
-import proxy_ip
+import server_connection
+
+redis_conn = None
+
+if (redis_conn == None):
+    redis_conn = server_connection.redis_connect()
+
+def get_proxy_ip():
+    return redis_conn.srandmember("ip")
 
 headers = {
     'Connection': 'Keep-Alive',
@@ -38,7 +45,7 @@ def request_info(url):
     return resp
 
 def proxies():
-    host = proxy_ip.get_proxy_ip()
+    host = get_proxy_ip()
     proxies = {
         "https": "%s" % (host),
     }
@@ -146,7 +153,7 @@ def insert_question():
             href["/question/".__len__():href.index("/answer")], title, href[0:href.index("/answer")])
     sql = sql[:-1]
     sql += "ON DUPLICATE KEY UPDATE title = values(title),task_day=values(task_day);"
-    mysql_commit.commit(sql)
+    server_connection.commit(sql)
 
 
 # 根据href获取每个href的详情
@@ -164,7 +171,7 @@ def get_href_detail(question_id):
         return (question_id, answer_num, follow_num, read_num), True
     else:
         sql = "update zhihu_question set is_delete=0 where id=%s" % (question_id)
-        mysql_commit.commit(sql)
+        server_connection.commit(sql)
         return (question_id, 0, 0, 0), False
 
 
@@ -174,7 +181,7 @@ question_cursor = None
 def get_not_today_question_list(offset, limit):
     sql = "select id from zhihu_question where (task_day!=CURDATE() or task_day IS NULL ) and is_delete=1 limit %s,%s" % (
         offset, limit)
-    cursor = mysql_commit.commit(sql)
+    cursor = server_connection.commit(sql)
     global question_cursor
     question_cursor = cursor
 
@@ -182,7 +189,7 @@ def get_not_today_question_list(offset, limit):
 def get_all_question_list(offset, limit):
     sql = "select id from zhihu_question where is_delete=1 limit %s,%s" % (
         offset, limit)
-    cursor = mysql_commit.commit(sql)
+    cursor = server_connection.commit(sql)
     global question_cursor
     question_cursor = cursor
 
@@ -205,8 +212,8 @@ def task_question_info():
             sql2 = sql2[:-1]
             sql2 += ")"
             sql += "on DUPLICATE key UPDATE answer_num=values(answer_num), follow_num = VALUES(follow_num),read_num=values(read_num),create_time=values(create_time),update_time=values(update_time)"
-            mysql_commit.commit(sql)
-            mysql_commit.commit(sql2)
+            server_connection.commit(sql)
+            server_connection.commit(sql2)
         else:
             break
 
@@ -237,7 +244,7 @@ def get_answer_info(question_id, offset):
         sql = sql[:-1]
         sql += "on DUPLICATE key UPDATE update_time=values(update_time), author_name=values(author_name), content = VALUES(content),agree_num=values(agree_num),comment_num=values(comment_num),url_token=values(url_token)"
         print(sql)
-        mysql_commit.commit(sql)
+        server_connection.commit(sql)
     if (resp['paging']['is_end'] == True):
         return True
     else:

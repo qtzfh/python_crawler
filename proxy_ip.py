@@ -3,19 +3,12 @@ import random
 import urllib.request
 from lxml import etree
 import time
-import redis
-
-
-def redis_connect():
-    pool = redis.ConnectionPool(host='192.168.0.30', port=6379)
-    redis_conn = redis.Redis(connection_pool=pool)
-    return redis_conn
-
+import server_connection
 
 redis_conn = None
 
 if (redis_conn == None):
-    redis_conn = redis_connect()
+    redis_conn = server_connection.redis_connect()
 
 ip_all_list = []
 
@@ -66,7 +59,7 @@ def verif_ip(hosts):  # 验证ip有效性
     except urllib.request.URLError as e:
         print(e.reason)
 
-
+# 获取西刺代理
 def get_xici_proxy():
     url = 'http://www.xicidaili.com/nn/'
     url_list = get_url(url)
@@ -77,16 +70,5 @@ def get_xici_proxy():
     for data in ip_all_list:
         verif_ip(data)
 
-    # if __name__ == '__main__':
-    #
-    #     redis_conn.sadd("ip","aa")
-    #     redis_conn.sadd("ip", "bb")
-    # print(redis_conn.srem("ip","bb"))
-    # print(redis_conn.delete("ip"))
-    # print(redis_conn.srandmember("ip"))
-
-
-def get_proxy_ip():
-    if (redis_conn.srandmember("ip") == None):
-        get_xici_proxy()
-    return redis_conn.srandmember("ip")
+if __name__ == '__main__':
+    get_xici_proxy()
