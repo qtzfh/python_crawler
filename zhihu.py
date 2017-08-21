@@ -8,6 +8,7 @@ import os.path
 from bs4 import BeautifulSoup
 import datetime
 import server_connection
+import log
 
 redis_conn = None
 
@@ -35,7 +36,7 @@ session.cookies = cookielib.LWPCookieJar(filename='cookies')
 try:
     session.cookies.load(ignore_discard=True)
 except:
-    print("Cookie 未能加载")
+    log.info("Cookie 未能加载")
 
 def request_info(url):
     try:
@@ -49,12 +50,12 @@ def proxies():
     proxies = {
         "https": "%s" % (host),
     }
-    print(proxies)
+    log.info(proxies)
     return proxies
 
 
 resp = request_info("https://www.zhihu.com")
-print(resp)
+log.info(resp)
 
 
 # 获取xsrf
@@ -79,7 +80,7 @@ def get_captcha():
         im.show()
         im.close()
     except:
-        print(u'请到 %s 目录找到captcha.jpg 手动输入' % os.path.abspath('captcha.jpg'))
+        log.info(u'请到 %s 目录找到captcha.jpg 手动输入' % os.path.abspath('captcha.jpg'))
     captcha = input("please input the captcha\n>")
     return captcha
 
@@ -96,7 +97,7 @@ def login():
     if response.json()['r'] == 1:
         postData["captcha"] = get_captcha()
         response = session.post("https://www.zhihu.com/login/phone_num", data=postData, headers=headers)
-        print(response.json()['msg'])
+        log.info(response.json()['msg'])
     # 保存session到文件中
     session.cookies.save()
 
@@ -115,7 +116,7 @@ question_list = []
 
 
 def get_day_hot(day):
-    print("get_day_hot")
+    log.info("get_day_hot")
     if (day == 0 or day == None):
         # 第一次打开的页面
         resp = request_info("https://www.zhihu.com/explore#daily-hot")
@@ -158,7 +159,7 @@ def insert_question():
 
 # 根据href获取每个href的详情
 def get_href_detail(question_id):
-    print("get_href_detail:" + question_id)
+    log.info("get_href_detail:" + question_id)
     resp = request_info("https://www.zhihu.com/question/%s" % (question_id))
     soup = BeautifulSoup(resp.text)
     if (soup.find_all("h4", {"class": "List-headerText"}) != None and soup.find_all("h4", {
@@ -196,7 +197,6 @@ def get_all_question_list(offset, limit):
 
 # 根据数据库的question获取每日数据变化
 def task_question_info():
-    print("task_question_info")
     while (True):
         get_not_today_question_list(0, 20)
         if (question_cursor.rowcount > 0):
@@ -219,7 +219,7 @@ def task_question_info():
 
 
 def get_answer_info(question_id, offset):
-    print("get_answer_info")
+    log.info("get_answer_info")
     limit = offset + 5
     url = "https://www.zhihu.com/api/v4/questions/%s/answers?include=data[*].is_normal,admin_closed_comment,reward_info,is_collapsed," \
           "annotation_action,annotation_detail,collapse_reason,is_sticky,collapsed_by,suggest_edit,comment_count,can_comment,content," \
@@ -243,7 +243,6 @@ def get_answer_info(question_id, offset):
                 created_time)
         sql = sql[:-1]
         sql += "on DUPLICATE key UPDATE update_time=values(update_time), author_name=values(author_name), content = VALUES(content),agree_num=values(agree_num),comment_num=values(comment_num),url_token=values(url_token)"
-        print(sql)
         server_connection.commit(sql)
     if (resp['paging']['is_end'] == True):
         return True
@@ -252,7 +251,7 @@ def get_answer_info(question_id, offset):
 
 
 def insert_answer_info():
-    print("insert_answer_info")
+    log.info("insert_answer_info")
     offset = 0
     while (True):
         get_all_question_list(offset, 20)
@@ -274,10 +273,8 @@ def task_all_work():
     now = datetime.datetime.now()
     sched_time = datetime.datetime(now.year, now.month, now.day, 3, 15, 0)
     tomorrow = sched_time + datetime.timedelta(days=1)
-    print(tomorrow)
     while True:
         now = datetime.datetime.now()
-        print(now)
         if sched_time < now < (sched_time + datetime.timedelta(minutes=2)):
             sched_time = datetime.datetime(tomorrow.year, tomorrow.month, tomorrow.day, 3, 15, 0)
             tomorrow = tomorrow + datetime.timedelta(days=1)
@@ -294,14 +291,6 @@ def task_all_work():
 
 if __name__ == '__main__':
     if is_login():
-        # 获取question_list并且insert
-        insert_question()
-        print("insert")
-        # 获取question_info 详细信息
-        task_question_info()
-        print("task_question")
-        # 获取question_info下的回答内容
-        insert_answer_info()
-        print("answer")
+        task_all_work()
     else:
         login()

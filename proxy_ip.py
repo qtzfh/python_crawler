@@ -4,6 +4,7 @@ import urllib.request
 from lxml import etree
 import time
 import server_connection
+import log
 
 redis_conn = None
 
@@ -42,7 +43,7 @@ def verif_ip(hosts):  # 验证ip有效性
     user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.22 Safari/537.36 SE 2.X MetaSr 1.0'
     headers = {'User-Agent': user_agent}
     proxy = {'https': 'https://%s' % (hosts)}
-    print(proxy)
+    log.info(proxy)
 
     proxy_handler = urllib.request.ProxyHandler(proxy)
     opener = urllib.request.build_opener(proxy_handler)
@@ -54,17 +55,17 @@ def verif_ip(hosts):  # 验证ip有效性
         res = urllib.request.urlopen(req)
         content = res.read()
         if content:
-            print('that is ok')
+            log.info('that is ok')
             redis_conn.sadd("ip", hosts)
     except urllib.request.URLError as e:
-        print(e.reason)
+        log.info(e.reason)
 
 # 获取西刺代理
 def get_xici_proxy():
     url = 'http://www.xicidaili.com/nn/'
     url_list = get_url(url)
     for i in url_list:
-        print(i)
+        log.info(i)
         content = get_content(i)
         get_info(content)
     for data in ip_all_list:
