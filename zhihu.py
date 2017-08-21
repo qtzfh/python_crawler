@@ -39,10 +39,12 @@ except:
     log.info("Cookie 未能加载")
 
 def request_info(url):
+    proxy = proxies()
     try:
-        resp = session.get(url, headers=headers, proxies=proxies())
+        resp = session.get(url, headers=headers, proxies=proxy)
     except:
         resp = session.get(url, headers=headers)
+        redis_conn.srem("ip",proxy['https'])
     return resp
 
 def proxies():

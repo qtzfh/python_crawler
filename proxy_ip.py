@@ -16,7 +16,7 @@ ip_all_list = []
 
 def get_url(url):  # 国内高匿代理的链接
     url_list = []
-    for i in range(1, 2):
+    for i in range(1, 50):
         url_new = url + str(i)
         url_list.append(url_new)
     return url_list
