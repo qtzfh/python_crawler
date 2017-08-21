@@ -30,6 +30,12 @@ try:
 except:
     print("Cookie 未能加载")
 
+def request_info(url):
+    try:
+        resp = session.get(url, headers=headers, proxies=proxies())
+    except:
+        resp = session.get(url, headers=headers)
+    return resp
 
 def proxies():
     host = proxy_ip.get_proxy_ip()
@@ -40,7 +46,7 @@ def proxies():
     return proxies
 
 
-resp = session.get("https://www.zhihu.com", headers=headers, proxies=proxies())
+resp = request_info("https://www.zhihu.com")
 print(resp)
 
 
@@ -55,7 +61,7 @@ def get_xsrf(data):
 def get_captcha():
     t = str(int(time.time() * 1000))
     captcha_url = 'https://www.zhihu.com/captcha.gif?r=' + t + "&type=login"
-    r = session.get(captcha_url, headers=headers, proxies=proxies())
+    r = request_info(captcha_url)
     with open('captcha.jpg', 'wb') as f:
         f.write(r.content)
         f.close()
@@ -91,7 +97,7 @@ def login():
 def is_login():
     # 通过查看用户个人信息来判断是否已经登录
     url = "https://www.zhihu.com/settings/profile"
-    login_code = session.get(url, headers=headers, allow_redirects=False, proxies=proxies()).status_code
+    login_code = request_info(url).status_code
     if login_code == 200:
         return True
     else:
@@ -105,14 +111,14 @@ def get_day_hot(day):
     print("get_day_hot")
     if (day == 0 or day == None):
         # 第一次打开的页面
-        resp = session.get("https://www.zhihu.com/explore#daily-hot", headers=headers, proxies=proxies())
+        resp = request_info("https://www.zhihu.com/explore#daily-hot")
         soup = BeautifulSoup(resp.text)
         for link in soup.find_all("a", {"class": "question_link"}):
             question_list.append((link.get('href'), link.text.replace("\n", "").replace("\"", "'")))
     else:
         # 更多选项
         url = "https://www.zhihu.com/node/ExploreAnswerListV2?params={\"offset\": %s,\"type\":\"day\"}" % (day)
-        resp = session.get(url, headers=headers, proxies=proxies())
+        resp = request_info(url)
         if (resp.text == None or resp.text == ""):
             return False
         else:
@@ -146,7 +152,7 @@ def insert_question():
 # 根据href获取每个href的详情
 def get_href_detail(question_id):
     print("get_href_detail:" + question_id)
-    resp = session.get("https://www.zhihu.com/question/%s" % (question_id), headers=headers, proxies=proxies())
+    resp = request_info("https://www.zhihu.com/question/%s" % (question_id))
     soup = BeautifulSoup(resp.text)
     if (soup.find_all("h4", {"class": "List-headerText"}) != None and soup.find_all("h4", {
         "class": "List-headerText"}).__len__() > 0):
@@ -214,7 +220,7 @@ def get_answer_info(question_id, offset):
           "relationship.is_authorized,is_author,voting,is_thanked,is_nothelp,upvoted_followees;data[*].mark_infos[*].url;data[*]" \
           ".author.follower_count,badge[?(type=best_answerer)].topics&offset=%s&limit=%s&sort_by=defaul" % (
               question_id, offset, limit)
-    resp = session.get(url, headers=headers, proxies=proxies()).json()
+    resp = request_info(url).json()
     sql = "insert into zhihu_answer_info(id,question_id,agree_num,comment_num,content,url_token,author_name,created_time,create_time,update_time) values"
     if (resp['data'] != None and resp['data'].__len__() > 0):
         for i in range(resp['data'].__len__()):

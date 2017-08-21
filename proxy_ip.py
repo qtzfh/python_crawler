@@ -3,11 +3,26 @@ import random
 import urllib.request
 from lxml import etree
 import time
+import redis
+
+
+def redis_connect():
+    pool = redis.ConnectionPool(host='192.168.0.30', port=6379)
+    redis_conn = redis.Redis(connection_pool=pool)
+    return redis_conn
+
+
+redis_conn = None
+
+if (redis_conn == None):
+    redis_conn = redis_connect()
+
+ip_all_list = []
 
 
 def get_url(url):  # 国内高匿代理的链接
     url_list = []
-    for i in range(1, 100):
+    for i in range(1, 2):
         url_new = url + str(i)
         url_list.append(url_new)
     return url_list
@@ -25,18 +40,15 @@ def get_content(url):  # 获取网页内容
 def get_info(content):  # 提取网页信息 / ip 端口
     datas_ip = etree.HTML(content).xpath('//table[contains(@id,"ip_list")]/tr/td[2]/text()')
     datas_port = etree.HTML(content).xpath('//table[contains(@id,"ip_list")]/tr/td[3]/text()')
-    with open("data.txt", "w") as fd:
-        for i in range(0, len(datas_ip)):
-            out = u""
-            out += u"" + datas_ip[i]
-            out += u":" + datas_port[i]
-            fd.write(out + u"\n")  # 所有ip和端口号写入data文件
+    for i in range(0, len(datas_ip)):
+        out = "%s:%s" % (datas_ip[i], datas_port[i])
+        ip_all_list.append(out)
 
 
-def verif_ip(ip, port):  # 验证ip有效性
+def verif_ip(hosts):  # 验证ip有效性
     user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.22 Safari/537.36 SE 2.X MetaSr 1.0'
     headers = {'User-Agent': user_agent}
-    proxy = {'http': 'http://%s:%s' % (ip, port)}
+    proxy = {'https': 'https://%s' % (hosts)}
     print(proxy)
 
     proxy_handler = urllib.request.ProxyHandler(proxy)
@@ -45,40 +57,36 @@ def verif_ip(ip, port):  # 验证ip有效性
 
     test_url = "https://www.zhihu.com/"
     req = urllib.request.Request(url=test_url, headers=headers)
-    time.sleep(6)
     try:
         res = urllib.request.urlopen(req)
-        time.sleep(3)
         content = res.read()
         if content:
             print('that is ok')
-            with open("data2.txt", "a") as fd:  # 有效ip保存到data2文件夹
-                fd.write(ip + u":" + port)
-                fd.write("\n")
-        else:
-            print('its not ok')
+            redis_conn.sadd("ip", hosts)
     except urllib.request.URLError as e:
         print(e.reason)
 
 
-if __name__ == '__main__':
+def get_xici_proxy():
     url = 'http://www.xicidaili.com/nn/'
     url_list = get_url(url)
     for i in url_list:
         print(i)
         content = get_content(i)
-        time.sleep(3)
         get_info(content)
+    for data in ip_all_list:
+        verif_ip(data)
 
-    with open("dali.txt", "r") as fd:
-        datas = fd.readlines()
-        for data in datas:
-            print(data.split(u":")[0])
-            # print('%d : %d'%(out[0],out[1]))
-            verif_ip(data.split(u":")[0], data.split(u":")[1])
+    # if __name__ == '__main__':
+    #
+    #     redis_conn.sadd("ip","aa")
+    #     redis_conn.sadd("ip", "bb")
+    # print(redis_conn.srem("ip","bb"))
+    # print(redis_conn.delete("ip"))
+    # print(redis_conn.srandmember("ip"))
 
 
 def get_proxy_ip():
-    proxy_ip = ["27.196.48.104:8998"]
-    rand = random.randint(0, proxy_ip.__len__() - 1)
-    return proxy_ip[rand]
+    if (redis_conn.srandmember("ip") == None):
+        get_xici_proxy()
+    return redis_conn.srandmember("ip")
