@@ -48,13 +48,13 @@ except:
 
 
 def request_info(url):
-    proxy = proxies()
-    time.sleep(2)
+    proxy,host = proxies()
     try:
         resp = session.get(url, headers=headers, proxies=proxy)
+        log.info("success:%s"%(host))
     except:
-        log.info("error:%s" % (proxy['https']))
-        redis_conn.srem("ip", proxy['https'])
+        log.info("error:%s" % (host))
+        redis_conn.srem("ip", host)
         request_info(url)
     return resp
 
@@ -65,7 +65,7 @@ def proxies():
         "https": "%s" % (host),
     }
     log.info(proxies)
-    return proxies
+    return proxies,host
 
 
 resp = request_info("https://www.zhihu.com")
@@ -308,6 +308,6 @@ def task_all_work():
 
 if __name__ == '__main__':
     if is_login():
-        task_all_work()
+        insert_question()
     else:
         login()
