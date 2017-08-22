@@ -79,12 +79,12 @@ def get_info(content, type):  # 提取网页信息 / ip 端口
 
 
 def verif_ip(hosts):  # 验证ip有效性
-    print("verif_ip")
     user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.22 Safari/537.36 SE 2.X MetaSr 1.0'
     headers = {'User-Agent': user_agent}
     proxy = {'https': 'https://%s' % (hosts)}
     log.info(proxy)
-    test_url = "https://www.zhihu.com/"
+    print(proxy)
+    test_url = "https://www.zhihu.com/explore"
     try:
         response = requests.get(url=test_url, headers=headers, proxies=proxy, timeout=30)
         request_code = response.status_code
@@ -155,9 +155,20 @@ def get_66_proxy():
             verif_ip(data)
         time.sleep(15)
 
+# 虫代理
+def get_bugng_proxy():
+    global ip_all_list
+    ip_all_list = []
+    url = "http://www.bugng.com/api/getproxy/json?num=80&anonymity=1&type=2"
+    resp = get_content(url, 3)
+    for data in resp['data']['proxy_list']:
+        ip_all_list.append(data)
+    for data in ip_all_list:
+        verif_ip(data)
 
 if __name__ == '__main__':
-    get_66_proxy()
-    # get_kuai_proxy()
-    get_xici_proxy()
+    # get_bugng_proxy()
     get_proxyipcenter_proxy()
+    # get_xici_proxy()
+    # get_66_proxy()
+    # get_kuai_proxy()

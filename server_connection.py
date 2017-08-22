@@ -2,13 +2,14 @@ import pymysql
 import redis
 import log
 
-db = pymysql.connect("192.168.0.18", "root", "root", "zhihu_crawler", use_unicode=True, charset="utf8")
+db = pymysql.connect("127.0.0.1", "root", "root123", "zhihu_crawler", use_unicode=True, charset="utf8")
 cursor = db.cursor()
 
 
 def commit(sql):
     try:
         # 执行sql语句
+        log.info(sql)
         cursor.execute(sql)
         # 提交到数据库执行
         db.commit()
@@ -20,6 +21,6 @@ def commit(sql):
 
 
 def redis_connect():
-    pool = redis.ConnectionPool(host='192.168.0.18', port=6379)
+    pool = redis.ConnectionPool(host='127.0.0.1', port=6379)
     redis_conn = redis.Redis(connection_pool=pool)
     return redis_conn
