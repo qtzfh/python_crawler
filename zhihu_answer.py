@@ -20,12 +20,13 @@ def get_answer_info(question_id, offset):
                 agree_num = data['voteup_count']
                 comment_num = data['comment_count']
                 content = data['content']
+                content = content.encode('gbk','ignore')
                 url_token = data['author']['url_token']
                 author_name = data['author']['name']
                 created_time = data['created_time']
                 answer_id = data['id']
                 sql += "(%s,\"%s\",%s,%s,\"%s\",\"%s\",\"%s\",%s,NOW(),NOW())," % (
-                    answer_id,question_id, agree_num, comment_num, content.replace("\"", "'"), url_token, author_name,
+                    answer_id,question_id, agree_num, comment_num, content.decode('gbk').replace("\"", "'"), url_token, author_name,
                     created_time)
             sql = sql[:-1]
             sql += "on DUPLICATE key UPDATE update_time=values(update_time), author_name=values(author_name), content = VALUES(content),agree_num=values(agree_num),comment_num=values(comment_num),url_token=values(url_token)"
@@ -58,7 +59,6 @@ def insert_answer_info():
 if __name__ == '__main__':
     if zhihu_main.is_login():
         # 获取question_info下的回答内容
-        # insert_answer_info()
-        get_answer_info("21175127",670)
+        insert_answer_info()
     else:
         zhihu_main.login()
