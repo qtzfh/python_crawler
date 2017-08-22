@@ -9,14 +9,22 @@ from bs4 import BeautifulSoup
 import datetime
 import server_connection
 import log
+import proxy_ip
 
 redis_conn = None
 
 if (redis_conn == None):
     redis_conn = server_connection.redis_connect()
 
+
 def get_proxy_ip():
-    return redis_conn.srandmember("ip")
+    ip = redis_conn.srandmember("ip")
+    if (ip == None):
+        proxy_ip.__name__
+        time.sleep(60)
+        ip = redis_conn.srandmember("ip")
+    return ip
+
 
 headers = {
     'Connection': 'Keep-Alive',
@@ -38,14 +46,18 @@ try:
 except:
     log.info("Cookie 未能加载")
 
+
 def request_info(url):
     proxy = proxies()
+    time.sleep(2)
     try:
         resp = session.get(url, headers=headers, proxies=proxy)
     except:
-        resp = session.get(url, headers=headers)
-        redis_conn.srem("ip",proxy['https'])
+        log.info("error:%s" % (proxy['https']))
+        redis_conn.srem("ip", proxy['https'])
+        request_info(url)
     return resp
+
 
 def proxies():
     host = get_proxy_ip()
@@ -149,14 +161,15 @@ def insert_question():
         if (isEnd == False):
             break
     # 拼装sql
-    for i in range(question_list.__len__()):
-        href = question_list[i][0]
-        title = question_list[i][1]
-        sql += "(\"%s\",\"%s\",\"%s\",NOW(),NOW(),CURDATE())," % (
-            href["/question/".__len__():href.index("/answer")], title, href[0:href.index("/answer")])
-    sql = sql[:-1]
-    sql += "ON DUPLICATE KEY UPDATE title = values(title),task_day=values(task_day);"
-    server_connection.commit(sql)
+    if (question_list.__len__() > 0):
+        for i in range(question_list.__len__()):
+            href = question_list[i][0]
+            title = question_list[i][1]
+            sql += "(\"%s\",\"%s\",\"%s\",NOW(),NOW(),CURDATE())," % (
+                href["/question/".__len__():href.index("/answer")], title, href[0:href.index("/answer")])
+        sql = sql[:-1]
+        sql += "ON DUPLICATE KEY UPDATE title = values(title),task_day=values(task_day);"
+        server_connection.commit(sql)
 
 
 # 根据href获取每个href的详情
@@ -180,6 +193,7 @@ def get_href_detail(question_id):
 
 question_cursor = None
 
+
 # 获取未被爬取的数据
 def get_not_today_question_list(offset, limit):
     sql = "select id from zhihu_question where (task_day!=CURDATE() or task_day IS NULL ) and is_delete=1 limit %s,%s" % (
@@ -187,6 +201,7 @@ def get_not_today_question_list(offset, limit):
     cursor = server_connection.commit(sql)
     global question_cursor
     question_cursor = cursor
+
 
 # 获取所有数据
 def get_all_question_list(offset, limit):
@@ -200,7 +215,7 @@ def get_all_question_list(offset, limit):
 # 根据数据库的question获取每日数据变化
 def task_question_info():
     while (True):
-        get_not_today_question_list(0, 20)
+        get_all_question_list(0, 20)
         if (question_cursor.rowcount > 0):
             sql = "insert into zhihu_question_info(question_id,answer_num,follow_num,read_num,create_time,update_time,task_day) values"
             sql2 = "update zhihu_question set task_day=CURDATE() where id in ("
