@@ -48,8 +48,6 @@ def insert_question():
         sql += "ON DUPLICATE KEY UPDATE title = values(title),task_day=values(task_day);"
         server_connection.commit(sql)
 
-question_cursor = None
-
 if __name__ == '__main__':
     if zhihu_main.is_login():
         insert_question()

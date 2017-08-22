@@ -1,6 +1,7 @@
 import zhihu_main
 import log
 import server_connection
+from binascii import unhexlify
 
 def get_answer_info(question_id, offset):
     log.info("get_answer_info")
@@ -12,22 +13,25 @@ def get_answer_info(question_id, offset):
           ".author.follower_count,badge[?(type=best_answerer)].topics&offset=%s&limit=%s&sort_by=defaul" % (
               question_id, offset, limit)
     resp = zhihu_main.request_info(url).json()
-    sql = "insert into zhihu_answer_info(id,question_id,agree_num,comment_num,content,url_token,author_name,created_time,create_time,update_time) values"
-    if (resp['data'] != None and resp['data'].__len__() > 0):
-        for i in range(resp['data'].__len__()):
-            agree_num = resp['data'][i]['voteup_count']
-            comment_num = resp['data'][i]['comment_count']
-            content = resp['data'][i]['content']
-            url_token = resp['data'][i]['author']['url_token']
-            author_name = resp['data'][i]['author']['name']
-            created_time = resp['data'][i]['created_time']
-            answer_id = resp['data'][i]['id']
-            sql += "(%s,%s,%s,%s,\"%s\",\"%s\",\"%s\",\"%s\",NOW(),NOW())," % (
-                answer_id, question_id, agree_num, comment_num, content.replace("\"", "'"), url_token, author_name,
-                created_time)
-        sql = sql[:-1]
-        sql += "on DUPLICATE key UPDATE update_time=values(update_time), author_name=values(author_name), content = VALUES(content),agree_num=values(agree_num),comment_num=values(comment_num),url_token=values(url_token)"
-        server_connection.commit(sql)
+    sql = "INSERT INTO zhihu_answer_info(id,question_id,agree_num,comment_num,content,url_token,author_name,created_time,create_time,update_time) values"
+    try:
+        if (resp['data'] != None and resp['data'].__len__() > 0):
+            for data in resp['data']:
+                agree_num = data['voteup_count']
+                comment_num = data['comment_count']
+                content = data['content']
+                url_token = data['author']['url_token']
+                author_name = data['author']['name']
+                created_time = data['created_time']
+                answer_id = data['id']
+                sql += "(%s,\"%s\",%s,%s,\"%s\",\"%s\",\"%s\",%s,NOW(),NOW())," % (
+                    answer_id,question_id, agree_num, comment_num, content.replace("\"", "'"), url_token, author_name,
+                    created_time)
+            sql = sql[:-1]
+            sql += "on DUPLICATE key UPDATE update_time=values(update_time), author_name=values(author_name), content = VALUES(content),agree_num=values(agree_num),comment_num=values(comment_num),url_token=values(url_token)"
+            server_connection.commit(sql)
+    except:
+        print("error")
     if (resp['paging']['is_end'] == True):
         return True
     else:
@@ -54,6 +58,7 @@ def insert_answer_info():
 if __name__ == '__main__':
     if zhihu_main.is_login():
         # 获取question_info下的回答内容
-        insert_answer_info()
+        # insert_answer_info()
+        get_answer_info("21175127",670)
     else:
         zhihu_main.login()

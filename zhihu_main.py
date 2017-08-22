@@ -46,6 +46,9 @@ try:
 except:
     log.info("Cookie 未能加载")
 
+question_cursor = None
+
+
 # 封装requests 请求
 def request_info(url):
     time.sleep(5)
@@ -60,6 +63,7 @@ def request_info(url):
         request_info(url)
     return resp
 
+
 # 获取代理ip
 def proxies():
     host = get_proxy_ip()
@@ -68,6 +72,7 @@ def proxies():
     }
     log.info(proxies)
     return proxies, host
+
 
 # 获取xsrf
 def get_xsrf(data):
@@ -95,6 +100,7 @@ def get_captcha():
     captcha = input("please input the captcha\n>")
     return captcha
 
+
 def is_login():
     # 通过查看用户个人信息来判断是否已经登录
     url = "https://www.zhihu.com/settings/profile"
@@ -103,6 +109,7 @@ def is_login():
         return True
     else:
         return False
+
 
 def login():
     resp = request_info("https://www.zhihu.com")
@@ -120,7 +127,6 @@ def login():
         log.info(response.json()['msg'])
     # 保存session到文件中
     session.cookies.save()
-
 
 
 # 获取未被爬取的数据
