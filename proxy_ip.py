@@ -1,4 +1,4 @@
-# coding:utf-8
+# -*- coding:utf-8 -*-
 import random
 import urllib.request
 from lxml import etree
@@ -23,9 +23,16 @@ def get_url(url, type):  # 国内高匿代理的链接
             url_new = url + str(i)
             url_list.append(url_new)
         return url_list
+    elif (type == 3):
+        url_list = []
+        for i in range(1, 5):
+            url_new = url + "%s.html" % (i)
+            url_list.append(url_new)
+        return url_list
 
 
 def get_content(url, type):  # 获取网页内容
+    print("url:%s" % (url))
     user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.22 Safari/537.36 SE 2.X MetaSr 1.0'
     headers = {'User-Agent': user_agent}
     if (type == 1):
@@ -39,6 +46,10 @@ def get_content(url, type):  # 获取网页内容
     elif (type == 3):
         res = requests.get(url=url, headers=headers)
         return res.json()
+    elif (type == 4):
+        res = requests.get(url=url, headers=headers)
+        res.encoding = 'gb2312'
+        return res.text
 
 
 def get_info(content, type):  # 提取网页信息 / ip 端口
@@ -56,21 +67,32 @@ def get_info(content, type):  # 提取网页信息 / ip 端口
                 datas_port = tr.find_all("td")[1].text
                 out = "%s:%s" % (datas_ip, datas_port)
                 ip_all_list.append(out)
+    elif (type == 3):
+        soup = BeautifulSoup(content)
+        tbody = soup.find_all("table")[2]
+        for tr in tbody.find_all("tr"):
+            if (tr.find_all("td")[0].text != "ip"):
+                datas_ip = tr.find_all("td")[0].text
+                datas_port = tr.find_all("td")[1].text
+                out = "%s:%s" % (datas_ip, datas_port)
+                ip_all_list.append(out)
 
 
 def verif_ip(hosts):  # 验证ip有效性
+    print("verif_ip")
     user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.22 Safari/537.36 SE 2.X MetaSr 1.0'
     headers = {'User-Agent': user_agent}
     proxy = {'https': 'https://%s' % (hosts)}
     log.info(proxy)
     test_url = "https://www.zhihu.com/"
     try:
-        request_code = requests(url=test_url, headers=headers, proxies=proxy, timeout=30).status_code
+        response = requests.get(url=test_url, headers=headers, proxies=proxy, timeout=30)
+        request_code = response.status_code
         if request_code == 200:
             log.info('that is ok')
             redis_conn.sadd("ip", hosts)
-    except urllib.request.URLError as e:
-        log.info(e.reason)
+    except:
+        log.info("this is error")
 
 
 # 获取西刺代理
@@ -116,16 +138,26 @@ def get_proxyipcenter_proxy():
         verif_ip(data)
 
 
+# 66免费代理网站
+def get_66_proxy():
+    type = 3
+    global ip_all_list
+    ip_all_list = []
+    for i in range(1, 10):
+        print("1111")
+        url = "http://www.66ip.cn/areaindex_%s/" % (i)
+        url_list = get_url(url, type)
+        for i in url_list:
+            log.info(i)
+            content = get_content(i, 4)
+            get_info(content, type)
+        for data in ip_all_list:
+            verif_ip(data)
+        time.sleep(15)
+
+
 if __name__ == '__main__':
-    try:
-        get_xici_proxy()
-    except:
-        log.info("西刺代理error")
-    try:
-        get_kuai_proxy()
-    except:
-        log.info("快代理error")
-    try:
-        get_proxyipcenter_proxy()
-    except:
-        log.info("知乎代理error")
+    get_66_proxy()
+    # get_kuai_proxy()
+    get_xici_proxy()
+    get_proxyipcenter_proxy()
