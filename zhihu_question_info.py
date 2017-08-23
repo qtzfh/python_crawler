@@ -3,6 +3,7 @@ import server_connection
 import log
 from bs4 import BeautifulSoup
 
+
 # 根据href获取每个href的详情
 def get_href_detail(question_id):
     log.info("get_href_detail:" + question_id)
@@ -25,27 +26,28 @@ def get_href_detail(question_id):
 
 # 根据数据库的question获取每日数据变化
 def insert_question_info():
-    offset = 0
     while (True):
-        zhihu_main.get_all_question_list(offset, 20)
-        if (zhihu_main.question_cursor.rowcount > 0):
-            sql = "insert into zhihu_question_info(question_id,answer_num,follow_num,read_num,create_time,update_time,task_day) values"
-            sql2 = "update zhihu_question set task_day=CURDATE() where id in ("
-            for question in zhihu_main.question_cursor.fetchall():
-                question_info, is_delete = get_href_detail(question[0])
-                if (is_delete == True):
-                    sql += "(%s,%s,%s,%s,NOW(),NOW(),CURDATE())," % (
-                        question_info[0], question_info[1], question_info[2], question_info[3])
-                    sql2 += "\"%s\"," % (question_info[0])
-            sql = sql[:-1]
-            sql2 = sql2[:-1]
-            sql2 += ")"
-            sql += "on DUPLICATE key UPDATE answer_num=values(answer_num), follow_num = VALUES(follow_num),read_num=values(read_num),create_time=values(create_time),update_time=values(update_time)"
-            server_connection.commit(sql)
-            server_connection.commit(sql2)
-            offset += 20
-        else:
-            break
+        try:
+            zhihu_main.get_question_list_type(1, 0, 20)
+            if (zhihu_main.question_cursor.rowcount > 0):
+                sql = "insert into zhihu_question_info(question_id,answer_num,follow_num,read_num,create_time,update_time,task_day) values"
+                sql2 = "update zhihu_question set execute_type=2 where id in ("
+                for question in zhihu_main.question_cursor.fetchall():
+                    question_info, is_delete = get_href_detail(question[0])
+                    if (is_delete == True):
+                        sql += "(%s,%s,%s,%s,NOW(),NOW(),CURDATE())," % (
+                            question_info[0], question_info[1], question_info[2], question_info[3])
+                        sql2 += "\"%s\"," % (question_info[0])
+                sql = sql[:-1]
+                sql2 = sql2[:-1]
+                sql2 += ")"
+                sql += "on DUPLICATE key UPDATE answer_num=values(answer_num), follow_num = VALUES(follow_num),read_num=values(read_num),create_time=values(create_time),update_time=values(update_time)"
+                server_connection.commit(sql)
+                server_connection.commit(sql2)
+            else:
+                break
+        except:
+            log.info("insert_question_info:error")
 
 
 if __name__ == '__main__':

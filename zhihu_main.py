@@ -1,7 +1,7 @@
 import zhihu_answer
 import zhihu_question
 import zhihu_question_info
-import datetime
+from datetime import datetime
 import time
 import requests
 import re
@@ -10,6 +10,9 @@ from PIL import Image
 import server_connection
 import proxy_ip
 import log
+import os
+from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 
 redis_conn = None
 
@@ -129,15 +132,6 @@ def login():
     session.cookies.save()
 
 
-# 获取未被爬取的数据
-def get_not_today_question_list(offset, limit):
-    sql = "select id from zhihu_question where (task_day!=CURDATE() or task_day IS NULL ) and is_delete=1 limit %s,%s" % (
-        offset, limit)
-    cursor = server_connection.commit(sql)
-    global question_cursor
-    question_cursor = cursor
-
-
 # 获取所有数据
 def get_all_question_list(offset, limit):
     sql = "select id from zhihu_question where is_delete=1 limit %s,%s" % (
@@ -147,29 +141,47 @@ def get_all_question_list(offset, limit):
     question_cursor = cursor
 
 
+# 获取question的execute_type=1的值
+def get_question_list_type(type, offset, limit):
+    sql = "select id from zhihu_question where is_delete=1 and execute_type=%s limit %s,%s" % (type,
+                                                                                               offset, limit)
+    cursor = server_connection.commit(sql)
+    global question_cursor
+    question_cursor = cursor
+
+
 # 每日3.15 运行task获取数据
 def task_all_work():
-    now = datetime.datetime.now()
-    sched_time = datetime.datetime(now.year, now.month, now.day, 3, 15, 0)
-    tomorrow = sched_time + datetime.timedelta(days=1)
-    while True:
-        now = datetime.datetime.now()
-        if sched_time < now < (sched_time + datetime.timedelta(minutes=2)):
-            sched_time = datetime.datetime(tomorrow.year, tomorrow.month, tomorrow.day, 3, 15, 0)
-            tomorrow = tomorrow + datetime.timedelta(days=1)
-            # 获取question_list并且insert
-            zhihu_question.insert_question()
-            # 获取question_info 详细信息
-            zhihu_question_info.insert_question_info()
-            # 获取question_info下的回答内容
-            zhihu_answer.insert_answer_info()
-            # 运行完之后sleep 5min 保证不会再进入本次循环
-            time.sleep(300)
-        time.sleep(60)
+    # 获取question_list并且insert
+    zhihu_question.insert_question()
+    # 获取question_info 详细信息
+    zhihu_question_info.insert_question_info()
+    # 获取question_info下的回答内容
+    # 回答内容单独处理
+    # zhihu_answer.insert_answer_info()
+    # 运行完之后sleep 5min 保证不会再进入本次循环
+
+
+# 每天初始化question的执行状态
+def init_question_type_everyDay():
+    sql = "update zhihu_question set execute_type =1"
+    server_connection.commit(sql)
 
 
 if __name__ == '__main__':
     if is_login():
-        task_all_work()
+        scheduler = BlockingScheduler()
+        # 每天凌晨1.15执行
+        scheduler.add_job(task_all_work, 'cron', hour=1, minute=15)
+        scheduler2 = BackgroundScheduler()
+        # 每天凌晨0.15执行
+        scheduler2.add_job(init_question_type_everyDay, 'cron', hour=0, minute=15)
+        try:
+            scheduler2.start()
+            scheduler.start()  # 采用的是阻塞的方式，只有一个线程专职做调度的任务
+        except (KeyboardInterrupt, SystemExit):
+            # Not strictly necessary if daemonic mode is enabled but should be done if possible
+            scheduler.shutdown()
+            print('Exit The Job!')
     else:
         login()
