@@ -4,6 +4,7 @@ import server_connection
 from binascii import unhexlify
 from apscheduler.schedulers.blocking import BlockingScheduler
 
+
 def get_answer_info(question_id, offset):
     log.info("get_answer_info")
     limit = offset + 5
@@ -42,21 +43,25 @@ def get_answer_info(question_id, offset):
 
 
 def insert_answer_info():
-    log.info("insert_answer_info")
-    i = 0
-    while (True):
+    end_question = True
+    while (end_question):
         host = zhihu_main.redis_conn.srandmember("question_id")
+        if (host == None):
+            log.info("break question_id")
+            end_question = False
         host = host.decode()
-        try:
-            zhihu_main.redis_conn.srem("question_id", host)
-            end = get_answer_info(host, i)
-            i = i + 5
-            if (end == True):
-                log.info("break")
-                break
-        except Exception:
-            log.info(Exception)
-            zhihu_main.redis_conn.sadd(host)
+        log.info("question_id:%s" % (host))
+        i = 0
+        end = False
+        while (end == False):
+            try:
+                zhihu_main.redis_conn.srem("question_id", host)
+                end = get_answer_info(host, i)
+                i = i + 5
+            except Exception:
+                log.info(Exception)
+                zhihu_main.redis_conn.sadd(host)
+
 
 if __name__ == '__main__':
     if zhihu_main.is_login():

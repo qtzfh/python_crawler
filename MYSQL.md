@@ -6,7 +6,7 @@
 	  `href` varchar(128) DEFAULT NULL COMMENT '知乎问题url',
 	  `create_time` datetime DEFAULT NULL,
 	  `update_time` datetime DEFAULT NULL,
-	  `execute_type` int(1) DEFAULT '1' COMMENT '1：代表初始状态 2：question_info 添加完毕 3：answer 添加完毕',
+	  `execute_type` int(1) DEFAULT '1' COMMENT '1：代表初始状态 2：question_info 添加完毕',
 	  `is_delete` int(1) DEFAULT '1' COMMENT '是否被关闭',
 	  PRIMARY KEY (`id`),
 	  UNIQUE KEY `href不能重复` (`href`) USING HASH
