@@ -159,6 +159,7 @@ def set_question_id():
     get_all_question_list()
     for data in question_cursor.fetchall():
         redis_conn.sadd("question_id", data[0])
+    log.info("set question id success")
 
 
 # 每日3.15 运行task获取数据

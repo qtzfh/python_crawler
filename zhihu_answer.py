@@ -46,6 +46,7 @@ def insert_answer_info():
     i = 0
     while (True):
         host = zhihu_main.redis_conn.srandmember("question_id")
+        host = host.decode()
         try:
             zhihu_main.redis_conn.srem("question_id", host)
             end = get_answer_info(host, i)
