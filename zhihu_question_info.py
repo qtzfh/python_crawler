@@ -26,7 +26,8 @@ def get_href_detail(question_id):
 
 # 根据数据库的question获取每日数据变化
 def insert_question_info():
-    while (True):
+    is_end = True
+    while (is_end):
         try:
             zhihu_main.get_question_list_type(1, 0, 20)
             if (zhihu_main.question_cursor.rowcount > 0):
@@ -44,8 +45,12 @@ def insert_question_info():
                 sql += "on DUPLICATE key UPDATE answer_num=values(answer_num), follow_num = VALUES(follow_num),read_num=values(read_num),create_time=values(create_time),update_time=values(update_time)"
                 server_connection.commit(sql)
                 server_connection.commit(sql2)
+                if (zhihu_main.question_cursor.rowcount < 20):
+                    is_end = False
+                    log.info("break")
             else:
-                break
+                is_end = False
+                log.info("break")
         except:
             log.info("insert_question_info:error")
 
