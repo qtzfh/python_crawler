@@ -35,7 +35,7 @@ def get_answer_info(question_id, offset):
             sql += "on DUPLICATE key UPDATE update_time=values(update_time), author_name=values(author_name), content = VALUES(content),agree_num=values(agree_num),comment_num=values(comment_num),url_token=values(url_token)"
             server_connection.commit(sql)
     except:
-        print("error")
+        log.error("error")
     if (resp['paging']['is_end'] == True):
         return True
     else:
@@ -58,9 +58,10 @@ def insert_answer_info():
                 zhihu_main.redis_conn.srem("question_id", host)
                 end = get_answer_info(host, i)
                 i = i + 5
-            except Exception:
-                log.info(Exception)
+            except:
+                log.error("error:"+host)
                 zhihu_main.redis_conn.sadd(host)
+                pass
 
 
 if __name__ == '__main__':
