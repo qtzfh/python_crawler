@@ -34,8 +34,9 @@ def get_answer_info(question_id, offset):
             sql = sql[:-1]
             sql += "on DUPLICATE key UPDATE update_time=values(update_time), author_name=values(author_name), content = VALUES(content),agree_num=values(agree_num),comment_num=values(comment_num),url_token=values(url_token)"
             server_connection.commit(sql)
-    except:
-        log.error("error")
+    except Exception:
+        log.error(Exception)
+        log.error("error:%s"%(limit))
     if (resp['paging']['is_end'] == True):
         return True
     else:
@@ -45,35 +46,37 @@ def get_answer_info(question_id, offset):
 def insert_answer_info():
     end_question = True
     while (end_question):
-        host = zhihu_main.redis_conn.srandmember("question_id")
-        if (host == None):
+        question_id = zhihu_main.redis_conn.srandmember("question_id")
+        if (question_id == None):
             log.info("break question_id")
             end_question = False
-        host = host.decode()
-        log.info("question_id:%s" % (host))
+        question_id = question_id.decode()
+        log.info("question_id:%s" % (question_id))
         i = 0
         end = False
         while (end == False):
             try:
-                zhihu_main.redis_conn.srem("question_id", host)
-                end = get_answer_info(host, i)
+                zhihu_main.redis_conn.srem("question_id", question_id)
+                end = get_answer_info(question_id, i)
                 i = i + 5
             except:
-                log.error("error:"+host)
-                zhihu_main.redis_conn.sadd(host)
+                log.error(Exception)
+                log.error("error:" + question_id)
+                zhihu_main.redis_conn.sadd("question_id", question_id)
                 pass
 
 
 if __name__ == '__main__':
-    if zhihu_main.is_login():
-        scheduler = BlockingScheduler()
-        # 每天凌晨3.15执行
-        scheduler.add_job(insert_answer_info, 'cron', hour=3, minute=15)
-        try:
-            scheduler.start()  # 采用的是阻塞的方式，只有一个线程专职做调度的任务
-        except (KeyboardInterrupt, SystemExit):
-            # Not strictly necessary if daemonic mode is enabled but should be done if possible
-            scheduler.shutdown()
-            print('Exit The Job!')
-    else:
-        zhihu_main.login()
+    get_answer_info(25378124,0)
+    # if zhihu_main.is_login():
+    #     scheduler = BlockingScheduler()
+    #     # 每天凌晨3.15执行
+    #     scheduler.add_job(insert_answer_info, 'cron', hour=3, minute=15)
+    #     try:
+    #         scheduler.start()  # 采用的是阻塞的方式，只有一个线程专职做调度的任务
+    #     except (KeyboardInterrupt, SystemExit):
+    #         # Not strictly necessary if daemonic mode is enabled but should be done if possible
+    #         scheduler.shutdown()
+    #         print('Exit The Job!')
+    # else:
+    #     zhihu_main.login()
