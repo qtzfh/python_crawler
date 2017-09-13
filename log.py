@@ -19,7 +19,7 @@ fmt2 = '%(asctime)s - %(filename)s:%(lineno)s - %(name)s - %(message)s'
 formatter2 = logging.Formatter(fmt2)  # 实例化formatter
 handler2.setFormatter(formatter2)  # 为handler添加formatter
 logger2 = logging.getLogger('error')  # 获取名为tst的logger
-logger2.addHandler(handler)  # 为logger添加handler
+logger2.addHandler(handler2)  # 为logger添加handler
 logger2.setLevel(logging.DEBUG)
 
 def info(v):

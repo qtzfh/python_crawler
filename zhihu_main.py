@@ -12,6 +12,7 @@ import proxy_ip
 import log
 import os
 from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 
 redis_conn = None
 
@@ -139,6 +140,13 @@ def get_all_question_list():
     question_cursor = cursor
 
 
+def get_today_question_list():
+    sql = "SELECT * FROM `zhihu_question` where DATE_FORMAT(update_time,'%Y-%m-%d') = CURDATE();"
+    cursor = server_connection.commit(sql)
+    global question_cursor
+    question_cursor = cursor
+
+
 # 获取question的execute_type=1的值
 def get_question_list_type(type, offset, limit):
     sql = "select id from zhihu_question where is_delete=1 and execute_type=%s limit %s,%s" % (type,
@@ -156,7 +164,7 @@ def init_question_type_everyDay():
 
 # 将今天的question_id存入redis
 def set_question_id():
-    get_all_question_list()
+    get_today_question_list()
     for data in question_cursor.fetchall():
         redis_conn.sadd("question_id", data[0])
     log.info("set question id success")
@@ -164,6 +172,7 @@ def set_question_id():
 
 # 每日3.15 运行task获取数据
 def task_all_work():
+    print(datetime.now())
     init_question_type_everyDay()
     # 获取question_list并且insert
     zhihu_question.insert_question()
@@ -179,8 +188,7 @@ def task_all_work():
 if __name__ == '__main__':
     if is_login():
         scheduler = BlockingScheduler()
-        # 每天凌晨1.15执行
-        scheduler.add_job(task_all_work, 'cron', hour=1, minute=15)
+        scheduler.add_job(task_all_work, 'interval', minutes=720)
         try:
             scheduler.start()  # 采用的是阻塞的方式，只有一个线程专职做调度的任务
         except (KeyboardInterrupt, SystemExit):
