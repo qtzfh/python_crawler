@@ -14,6 +14,7 @@ import os
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.schedulers.background import BackgroundScheduler
 import pymysql
+import certifi
 
 redis_conn = None
 
@@ -21,23 +22,8 @@ if (redis_conn == None):
     redis_conn = server_connection.redis_connect()
 
 
-def get_proxy_ip():
-    ip = redis_conn.srandmember("ip")
-    if (ip == None):
-        proxy_ip.__name__
-        time.sleep(60)
-        ip = redis_conn.srandmember("ip")
-    return ip
-
-
 headers = {
-    'Connection': 'Keep-Alive',
-    'Accept': '*/*',
-    'Accept-Language': 'zh-CN,zh;q=0.8',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.63 Safari/537.36',
-    'Accept-Encoding': 'gzip, deflate,br',
-    'Host': 'www.zhihu.com',
-    'DNT': '1'
 }
 
 phone = "1886xxxxxxx"
@@ -55,34 +41,12 @@ question_cursor = None
 
 # 封装requests 请求
 def request_info(url):
-    time.sleep(5)
-    # proxy, host = proxies()
+    time.sleep(3)
     try:
-        # resp = session.get(url, headers=headers, proxies=proxy, timeout=60)
-        resp = session.get(url, headers=headers, timeout=60)
-        # log.info("success:%s" % (host))
+        resp = session.get(url, headers=headers, timeout=60,verify=certifi.where())
     except:
-        # log.info("error:%s" % (host))
-        # redis_conn.srem("ip", host)
         request_info(url)
     return resp
-
-
-# 获取代理ip
-def proxies():
-    host = get_proxy_ip()
-    proxies = {
-        "https": "%s" % (host),
-    }
-    log.info(proxies)
-    return proxies, host
-
-
-# 获取xsrf
-def get_xsrf(data):
-    patten = 'name=\"_xsrf\" value=\"(.*)\"'
-    _xsrf = re.findall(patten, data)
-    return _xsrf[0]
 
 
 # 获取验证码
@@ -116,10 +80,7 @@ def is_login():
 
 
 def login():
-    resp = request_info("https://www.zhihu.com")
-    _xsrf = get_xsrf(resp.text)
     postData = {
-        "_xsrf": _xsrf,
         "password": password,
         "phone_num": phone
     }
