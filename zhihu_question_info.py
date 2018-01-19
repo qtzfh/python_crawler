@@ -17,6 +17,8 @@ def get_href_detail(question_id):
             answer_num = answer_num[0:answer_num.index("个回答")]
             follow_num = soup.find_all("strong", {"class": "NumberBoard-itemValue"})[0].text
             read_num = soup.find_all("strong", {"class": "NumberBoard-itemValue"})[1].text
+            follow_num = follow_num.replace(',', '')
+            read_num = read_num.replace(',', '')
             return (question_id, answer_num, follow_num, read_num), True
         else:
             sql = "update zhihu_question set is_delete=0 where id=%s" % (question_id)
