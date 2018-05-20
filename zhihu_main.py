@@ -26,7 +26,7 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.63 Safari/537.36',
 }
 
-phone = "1886xxxxxxx"
+phone = "1886xxxxxxxx"
 password = "xxxxxx"
 
 session = requests.session()
@@ -142,7 +142,7 @@ def task_all_work():
     # 获取question_list并且insert
     zhihu_question.insert_question()
     # 获取今天所有的question_id并set到redis用于处理answer
-    set_question_id()
+    #set_question_id()
     # 获取question_info 详细信息
     zhihu_question_info.insert_question_info()
     # 获取question_info下的回答内容
@@ -154,8 +154,9 @@ def tick():
 
 if __name__ == '__main__':
     if is_login():
+        #task_all_work()
         scheduler = BlockingScheduler()
-        scheduler.add_job(task_all_work, 'interval', minutes=480)
+        scheduler.add_job(task_all_work, 'interval', minutes=1440)
         scheduler2 = BackgroundScheduler()
         scheduler2.add_job(tick, 'interval', seconds=30)
         try:

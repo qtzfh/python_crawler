@@ -2,12 +2,21 @@ import zhihu_main
 import server_connection
 import log
 from bs4 import BeautifulSoup
+import time
+import requests
 
+def request_info(url):
+    time.sleep(1)
+    try:
+        resp = requests.get(url, headers=zhihu_main.headers, timeout=60,verify=zhihu_main.certifi.where())
+    except:
+        request_info(url)
+    return resp
 
 # 根据href获取每个href的详情
 def get_href_detail(question_id):
     log.info("get_href_detail:" + question_id)
-    resp = zhihu_main.request_info("https://www.zhihu.com/question/%s" % (question_id))
+    resp = request_info("https://www.zhihu.com/question/%s" % (question_id))
     if (resp != None and resp != ""):
         soup = BeautifulSoup(resp.text)
         if (soup.find_all("h4", {"class": "List-headerText"}) != None and soup.find_all("h4", {
@@ -32,12 +41,13 @@ def insert_question_info():
     is_end = True
     while (is_end):
         try:
-            zhihu_main.get_question_list_type(1, 0, 20)
-            if (zhihu_main.question_cursor.rowcount > 0):
+            zhihu_main.get_question_list_type(1, 0, 200)
+            row_count = zhihu_main.question_cursor.rowcount
+            if (row_count > 0):
                 sql = "insert into zhihu_question_info(question_id,answer_num,follow_num,read_num,create_time,update_time,task_day) values"
                 sql2 = "update zhihu_question set execute_type=2 where id in ("
                 for question in zhihu_main.question_cursor.fetchall():
-                    question_info, is_delete = get_href_detail(question[0])
+                    question_info, is_delete = get_href_detail(str(question[0]))
                     if (is_delete == True):
                         sql += "(%s,%s,%s,%s,NOW(),NOW(),CURDATE())," % (
                             question_info[0], question_info[1], question_info[2], question_info[3])
@@ -48,7 +58,7 @@ def insert_question_info():
                 sql += "on DUPLICATE key UPDATE answer_num=values(answer_num), follow_num = VALUES(follow_num),read_num=values(read_num),create_time=values(create_time),update_time=values(update_time)"
                 server_connection.commit(sql)
                 server_connection.commit(sql2)
-                if (zhihu_main.question_cursor.rowcount < 20):
+                if (row_count <= 10):
                     is_end = False
                     log.info("break")
             else:
@@ -59,7 +69,4 @@ def insert_question_info():
 
 
 if __name__ == '__main__':
-    if zhihu_main.is_login():
-        insert_question_info()
-    else:
-        zhihu_main.login()
+    insert_question_info()
