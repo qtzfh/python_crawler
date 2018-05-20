@@ -149,14 +149,19 @@ def task_all_work():
     # 回答内容单独处理
     # zhihu_answer.insert_answer_info()
 def tick():
-    sql = "select id from zhihu_question limit 0,1"
+    # 保持数据库连接
+    sql = "select id from zhihu_question limit 0,1 where id = 0"
     server_connection.commit(sql)
+
+def test():
+    print("this is test")
+
 
 if __name__ == '__main__':
     if is_login():
         #task_all_work()
         scheduler = BlockingScheduler()
-        scheduler.add_job(task_all_work, 'interval', minutes=1440)
+        scheduler.add_job(test, 'cron',day_of_week ='0-6',hour = 00,minute = 10,second = 00)
         scheduler2 = BackgroundScheduler()
         scheduler2.add_job(tick, 'interval', seconds=30)
         try:
