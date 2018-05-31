@@ -1,14 +1,18 @@
-import zhihu_main
-import server_connection
-import log
-from bs4 import BeautifulSoup
 import time
 import requests
+from bs4 import BeautifulSoup
+import log
+import server_connection
+import zhihu_main
+
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.63 Safari/537.36',
+}
 
 def request_info(url):
     time.sleep(1)
     try:
-        resp = requests.get(url, headers=zhihu_main.headers, timeout=60,verify=zhihu_main.certifi.where())
+        resp = requests.get(url, headers=headers, timeout=60,verify=zhihu_main.certifi.where())
     except:
         request_info(url)
     return resp
@@ -19,6 +23,9 @@ def get_href_detail(question_id):
     resp = request_info("https://www.zhihu.com/question/%s" % (question_id))
     if (resp != None and resp != ""):
         soup = BeautifulSoup(resp.text)
+        if soup.find_all("button",{"type":"submit"})!=None and soup.find_all("button",{"type":"submit"}).__len__()>0:
+            resp = zhihu_main.request_info("https://www.zhihu.com/question/%s" % (question_id))
+            soup = BeautifulSoup(resp.text)
         if (soup.find_all("h4", {"class": "List-headerText"}) != None and soup.find_all("h4", {
             "class": "List-headerText"}).__len__() > 0):
             # 关注数和浏览数
