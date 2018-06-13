@@ -32,7 +32,11 @@ def insert_question():
     sql = "insert into zhihu_question (id,title,create_time,update_time) VALUES "
     i = 0
     # 遍历获取所有页面
-    isEnd = get_day_hot(i)
+    while (True):
+        i = i + 5
+        isEnd = get_day_hot(i)
+        if (isEnd == False):
+            break
     # 拼装sql
     if (question_list.__len__() > 0):
         for i in range(question_list.__len__()):
