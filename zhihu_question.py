@@ -29,27 +29,20 @@ def get_day_hot(day):
 
 # 将href和title保存到数据库
 def insert_question():
-    sql = "insert into zhihu_question (id,title,href,create_time,update_time) VALUES "
+    sql = "insert into zhihu_question (id,title,create_time,update_time) VALUES "
     i = 0
     # 遍历获取所有页面
-    while (True):
-        i = i + 5
-        isEnd = get_day_hot(i)
-        if (isEnd == False):
-            break
+    isEnd = get_day_hot(i)
     # 拼装sql
     if (question_list.__len__() > 0):
         for i in range(question_list.__len__()):
             href = question_list[i][0]
             title = question_list[i][1]
-            sql += "(\"%s\",\"%s\",\"%s\",NOW(),NOW())," % (
-                href["/question/".__len__():href.index("/answer")], title, href[0:href.index("/answer")])
+            sql += "(\"%s\",\"%s\",NOW(),NOW())," % (
+                href["/question/".__len__():href.index("/answer")], title)
         sql = sql[:-1]
         sql += "ON DUPLICATE KEY UPDATE title = values(title);"
         server_connection.commit(sql)
 
 if __name__ == '__main__':
-    if zhihu_main.is_login():
-        insert_question()
-    else:
-        zhihu_main.login()
+    insert_question()
