@@ -64,6 +64,13 @@ def get_question_list_type(type, offset, limit):
     global question_cursor
     question_cursor = server_connection.cursor
 
+# 获取大于question_id的值
+def get_question_list_type(question_id,offset, limit):
+    sql = "select id from zhihu_question where is_delete=1 and id >%s limit %s,%s"%(question_id,offset, limit)
+    server_connection.commit(sql)
+    global question_cursor
+    question_cursor = server_connection.cursor
+
 
 # 每天初始化question的执行状态
 def init_question_type_everyDay():
