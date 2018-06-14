@@ -120,7 +120,7 @@ def test():
 
 if __name__ == '__main__':
     scheduler = BlockingScheduler()
-    scheduler.add_job(task_all_work, 'cron', day_of_week='0-6', hour=00, minute=15, second=00)
+    scheduler.add_job(task_all_work, 'cron', day_of_week='0-6', hour=00, minute=1, second=00)
     scheduler2 = BackgroundScheduler()
     scheduler2.add_job(tick, 'interval', seconds=30)
     try:
