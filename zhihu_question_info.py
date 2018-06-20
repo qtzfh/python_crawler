@@ -1,28 +1,13 @@
-import time
-import requests
 from bs4 import BeautifulSoup
 import log
 import server_connection
 import zhihu_main
-
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.63 Safari/537.36',
-}
-
-
-def request_info(url):
-    time.sleep(1)
-    try:
-        resp = requests.get(url, headers=headers, timeout=60, verify=zhihu_main.certifi.where())
-    except:
-        request_info(url)
-    return resp
-
+import common_request
 
 # 根据href获取每个href的详情
 def get_href_detail(question_id):
     log.info("get_href_detail:" + question_id)
-    resp = request_info("https://www.zhihu.com/question/%s" % (question_id))
+    resp = common_request.request_get_sleep_one("https://www.zhihu.com/question/%s" % (question_id))
     try:
         if (resp != None and resp != ""):
             soup = BeautifulSoup(resp.text)

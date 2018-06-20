@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import server_connection
 import log
 import zhihu_main
+import common_request
 
 question_list = []
 
@@ -10,14 +11,14 @@ def get_day_hot(day):
     log.info("get_day_hot")
     if (day == 0 or day == None):
         # 第一次打开的页面
-        resp = zhihu_main.request_info("https://www.zhihu.com/explore#daily-hot")
+        resp = common_request.session_get_sleep_three("https://www.zhihu.com/explore#daily-hot")
         soup = BeautifulSoup(resp.text)
         for link in soup.find_all("a", {"class": "question_link"}):
             question_list.append((link.get('href'), link.text.replace("\n", "").replace("\"", "'")))
     else:
         # 更多选项
         url = "https://www.zhihu.com/node/ExploreAnswerListV2?params={\"offset\": %s,\"type\":\"day\"}" % (day)
-        resp = zhihu_main.request_info(url)
+        resp = common_request.session_get_sleep_three(url)
         if (resp.text == None or resp.text == ""):
             return False
         else:

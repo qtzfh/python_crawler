@@ -1,10 +1,8 @@
 from datetime import datetime
-import certifi
+
 import pymysql
-import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
-import time
 import log
 import server_connection
 import zhihu_question
@@ -15,30 +13,7 @@ redis_conn = None
 if (redis_conn == None):
     redis_conn = server_connection.redis_connect()
 
-def cookies():
-    sql = "select cookies from cookies  where type = 'zhihu' limit 0,1"
-    server_connection.commit(sql)
-    global question_cursor
-    question_cursor = server_connection.cursor
-    cookies = ""
-    for data in question_cursor.fetchall():
-        cookies =  data[0]
-    return cookies
 
-headers = {
-    'cookie':cookies(),
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.63 Safari/537.36',
-}
-
-question_cursor = None
-
-
-# 封装requests 请求
-def request_info(url):
-    time.sleep(3)
-    session = requests.Session()
-    resp = session.get(url, headers=headers, timeout=60, verify=certifi.where())
-    return resp
 
 
 # 获取所有数据
@@ -66,11 +41,17 @@ def get_question_list_type(type, offset, limit):
 
 # 获取大于question_id的值
 def get_question_list_type(question_id,offset, limit):
-    sql = "select id from zhihu_question where is_delete=1 and id >%s limit %s,%s"%(question_id,offset, limit)
+    sql = "select id from zhihu_question where is_delete=1 and id >%s  order by id asc limit %s,%s "%(question_id,offset, limit)
     server_connection.commit(sql)
     global question_cursor
     question_cursor = server_connection.cursor
 
+# 获取大于topic_id的值
+def get_topic_list(topic_id,offset, limit):
+    sql = "select topic_id from zhihu_topic where is_delete=1 and topic_id >%s order by topic_id asc limit %s,%s"%(topic_id,offset, limit)
+    server_connection.commit(sql)
+    global question_cursor
+    question_cursor = server_connection.cursor
 
 # 每天初始化question的执行状态
 def init_question_type_everyDay():
