@@ -39,5 +39,27 @@
 	  PRIMARY KEY (`question_id`,`task_day`)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+	CREATE TABLE `zhihu_topic` (
+      `topic_id` int(11) NOT NULL,
+      `topic_name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT '话题名',
+      `follow_num` int(11) DEFAULT NULL COMMENT '关注数',
+      `question_num` int(11) DEFAULT NULL COMMENT '问题数',
+      `create_time` datetime NOT NULL,
+      `update_time` datetime NOT NULL,
+      `is_delete` tinyint(11) unsigned NOT NULL DEFAULT '1' COMMENT '0：删除 1：未删除',
+      PRIMARY KEY (`topic_id`),
+      KEY `zhihu_topic_name` (`topic_name`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='知乎话题';
+
+    CREATE TABLE `zhihu_topic_question_relation` (
+      `topic_id` int(10) unsigned NOT NULL,
+      `question_id` int(10) unsigned NOT NULL,
+      `create_time` datetime NOT NULL COMMENT '创建时间',
+      `update_time` datetime NOT NULL COMMENT '修改时间',
+      `is_delete` tinyint(1) unsigned NOT NULL DEFAULT '1' COMMENT '0：删除 1：未删除',
+      PRIMARY KEY (`topic_id`,`question_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
 
 ```
