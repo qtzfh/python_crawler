@@ -201,6 +201,5 @@ def update_topic_info_and_get_question_info():
 
 
 if __name__ == '__main__':
-    # update_topic_info_and_get_question_info()
-    handle_topic_info(19550225)
+    update_topic_info_and_get_question_info()
 
