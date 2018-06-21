@@ -190,8 +190,11 @@ def update_topic_info_and_get_question_info():
         row_count = zhihu_main.question_cursor.rowcount
         if (row_count > 0):
             for topic_id in zhihu_main.question_cursor.fetchall():
-                handle_topic_info(topic_id[0])
-                topic_id = topic_id[0]
+                try:
+                    handle_topic_info(topic_id[0])
+                    topic_id = topic_id[0]
+                except:
+                    log.error(topic_id[0])
                 if (row_count <= 10):
                     is_end = False
                     log.info("break")
