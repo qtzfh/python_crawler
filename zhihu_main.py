@@ -6,6 +6,7 @@ import log
 import server_connection
 import zhihu_question
 import zhihu_question_info
+import zhihu_clear_quesiton
 
 redis_conn = None
 
@@ -65,6 +66,8 @@ def init_server_connection():
 # 每日3.15 运行task获取数据
 def task_all_work():
     print(datetime.now())
+    # 删除部分数据，降低爬虫数据量
+    zhihu_clear_quesiton.get_zhihu_question_info()
     init_server_connection()
     init_question_type_everyDay()
     # 获取question_list并且insert

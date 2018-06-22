@@ -1,41 +1,28 @@
-import redis
-from DBUtils.PersistentDB import PersistentDB
 import pymysql
+import redis
 import log
 
-hosts = '127.0.0.1'
-cursor = None
+hosts = "127.0.0.1"
 
-PooL = PersistentDB(
-    creator=pymysql,  # 使用链接数据库的模块
-    maxusage=None,  # 一个链接最多被使用的次数，None表示无限制
-    setsession=[],  # 开始会话前执行的命令
-    ping=0,  # ping MySQL服务端,检查服务是否可用
-    closeable=False,  # conn.close()实际上被忽略，供下次使用，直到线程关闭，自动关闭链接，而等于True时，conn.close()真的被关闭
-    threadlocal=None,  # 本线程独享值的对象，用于保存链接对象
-    host=hosts,
-    port=3306,
-    user='root',
-    password='root123',
-    database='zhihu_crawler',
-    charset='utf8'
-)
+db = pymysql.connect(hosts, "root", "root123", "zhihu_crawler", use_unicode=True, charset="utf8")
+cursor = db.cursor()
+
 
 def commit(sql):
     try:
-        conn = PooL.connection()
-        db_cursor = conn.cursor()
+        # 执行sql语句
         log.info(sql)
-        db_cursor.execute(sql)
-        db_cursor.close()
-        conn.close()
-        global cursor
-        cursor = db_cursor
+        cursor.execute(sql)
+        # 提交到数据库执行
+        db.commit()
+        return cursor
     except(EOFError):
         log.info(EOFError)
+        # 如果发生错误则回滚
+        db.rollback()
 
 
 def redis_connect():
-    pool = redis.ConnectionPool(host=hosts, port=6379)
+    pool = redis.ConnectionPool(hosts=hosts, port=6379)
     redis_conn = redis.Redis(connection_pool=pool)
     return redis_conn
