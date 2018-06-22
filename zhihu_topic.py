@@ -176,14 +176,14 @@ def handle_topic_info(topic_id):
         if is_end !=False:
             log.info("break")
             break
-        if offset >= 2000:
+        if offset >= 1:
             log.info("break")
             break
 
 
 # 根据topic_id，更新话题信息并且获取topic下精华问题
 def update_topic_info_and_get_question_info():
-    topic_id = 0
+    topic_id = 19551003
     is_end = True
     while (is_end):
         zhihu_main.get_topic_list(topic_id, 0, 20)
