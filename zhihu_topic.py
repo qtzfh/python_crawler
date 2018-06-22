@@ -38,7 +38,7 @@ def insert_topic_and_relation():
     is_end = True
     question_id = 0
     while (is_end):
-        zhihu_main.get_question_list_type(question_id, 0, 20)
+        zhihu_main.get_question_list_by_question_id(question_id, 0, 20)
         row_count = zhihu_main.question_cursor.rowcount
         if (row_count > 0):
             sql = "insert into zhihu_topic(topic_id,create_time,update_time) values"
@@ -176,26 +176,27 @@ def handle_topic_info(topic_id):
         if is_end !=False:
             log.info("break")
             break
-        if offset >= 1:
+        if offset >= 2000:
             log.info("break")
             break
 
 
 # 根据topic_id，更新话题信息并且获取topic下精华问题
 def update_topic_info_and_get_question_info():
-    topic_id = 19551003
+    topic_id = 0
     is_end = True
     while (is_end):
         zhihu_main.get_topic_list(topic_id, 0, 20)
         row_count = zhihu_main.question_cursor.rowcount
         if (row_count > 0):
             for topic_id in zhihu_main.question_cursor.fetchall():
+                topic_id = topic_id[0]
                 try:
-                    handle_topic_info(topic_id[0])
-                    topic_id = topic_id[0]
-                except:
-                    log.error(topic_id[0])
-                if (row_count <= 10):
+                    handle_topic_info(topic_id)
+                except(EOFError):
+                    log.error(topic_id)
+                    log.error(EOFError)
+                if (row_count <= 0):
                     is_end = False
                     log.info("break")
         else:

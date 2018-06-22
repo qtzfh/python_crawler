@@ -30,15 +30,15 @@ def get_question_list_type(type, offset, limit):
     question_cursor = server_connection.cursor
 
 # 获取大于question_id的值
-def get_question_list_type(question_id,offset, limit):
-    sql = "select id from zhihu_question where is_delete=1 and id >%s  order by id desc limit %s,%s "%(question_id,offset, limit)
+def get_question_list_by_question_id(question_id,offset, limit):
+    sql = "select id from zhihu_question where is_delete=1 and id >%s  order by id asc limit %s,%s "%(question_id,offset, limit)
     server_connection.commit(sql)
     global question_cursor
     question_cursor = server_connection.cursor
 
 # 获取大于topic_id的值
 def get_topic_list(question_id,offset, limit):
-    sql = "select topic_id from zhihu_topic where is_delete=1 and topic_id >%s order by topic_id desc limit %s,%s"%(question_id,offset, limit)
+    sql = "select topic_id from zhihu_topic where is_delete=1 and topic_id >%s order by topic_id asc limit %s,%s"%(question_id,offset, limit)
     server_connection.commit(sql)
     global question_cursor
     question_cursor = server_connection.cursor
