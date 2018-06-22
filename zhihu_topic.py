@@ -4,6 +4,7 @@ import server_connection
 import common_request
 import zhihu_main
 
+one_day_time = 24 * 60 * 60 * 1000
 
 # 根据href获取每个href的详情
 def get_href_detail(question_id):
@@ -112,10 +113,10 @@ def get_topic_info_next(url):
         data_target = data['target']
         if data_target['url'].find('zhuanlan.zhihu.com') > 0:
             special_titles.append(data_target['title'])
-            special_ids.append(data_target['url'].replace('http://zhuanlan.zhihu.com/p/',''))
+            special_ids.append(data_target['url'].replace('http://zhuanlan.zhihu.com/p/', ''))
         else:
             question_titles.append(data_target['question']['title'])
-            question_ids.append(data_target['question']['url'].replace('http://www.zhihu.com/api/v4/questions/',''))
+            question_ids.append(data_target['question']['url'].replace('http://www.zhihu.com/api/v4/questions/', ''))
     return is_end, next_url, question_titles, question_ids, special_titles, special_ids
 
 
@@ -168,22 +169,38 @@ def handle_topic_info(topic_id):
     offset = 5
     url = "https://www.zhihu.com/api/v4/topics/%s/feeds/essence?include=data[?(target.type=topic_sticky_module)].target.data[?(target.type=answer)].target.content,relationship.is_authorized,is_author,voting,is_thanked,is_nothelp;data[?(target.type=topic_sticky_module)].target.data[?(target.type=answer)].target.is_normal,comment_count,voteup_count,content,relevant_info,excerpt.author.badge[?(type=best_answerer)].topics;data[?(target.type=topic_sticky_module)].target.data[?(target.type=article)].target.content,voteup_count,comment_count,voting,author.badge[?(type=best_answerer)].topics;data[?(target.type=topic_sticky_module)].target.data[?(target.type=people)].target.answer_count,articles_count,gender,follower_count,is_followed,is_following,badge[?(type=best_answerer)].topics;data[?(target.type=answer)].target.content,relationship.is_authorized,is_author,voting,is_thanked,is_nothelp;data[?(target.type=answer)].target.author.badge[?(type=best_answerer)].topics;data[?(target.type=article)].target.content,author.badge[?(type=best_answerer)].topics;data[?(target.type=question)].target.comment_count&limit=10&offset=%s" % (
         topic_id, offset)
+    # 最终用于存储，最后提交sql使用，方式sql提交太频繁，导致数据库压力太大
+    question_sql_ids = []
+    question_sql_titles = []
+    special_sql_ids = []
+    special_sql_titles = []
     while (True):
         is_end, url, question_titles, question_ids, special_titles, special_ids = get_topic_info_next(url)
         offset += 10
-        insert_question_and_relation(question_titles, question_ids, topic_id)
-        insert_special_and_relation(special_titles, special_ids, topic_id)
-        if is_end !=False:
+        question_sql_ids.append(question_ids)
+        question_sql_titles.append(question_titles)
+        special_sql_ids.append(special_ids)
+        special_sql_titles.append(special_titles)
+        # 每10次添加一次
+        if offset % 100 == 0:
+            insert_question_and_relation(question_sql_titles, question_sql_ids, topic_id)
+            insert_special_and_relation(special_sql_titles, special_sql_ids, topic_id)
+        if is_end != False:
             log.info("break")
             break
         if offset >= 2000:
             log.info("break")
             break
+    insert_question_and_relation(question_sql_titles, question_sql_ids, topic_id)
+    insert_special_and_relation(special_sql_titles, special_sql_ids, topic_id)
 
 
 # 根据topic_id，更新话题信息并且获取topic下精华问题
 def update_topic_info_and_get_question_info():
+    redis_conn = server_connection.redis_connect()
     topic_id = 0
+    if redis_conn.get("redis:key:TOPIC_IDS") != None:
+        topic_id = redis_conn.get("redis:key:TOPIC_IDS").decode('utf-8')
     is_end = True
     while (is_end):
         zhihu_main.get_topic_list(topic_id, 0, 20)
@@ -199,6 +216,7 @@ def update_topic_info_and_get_question_info():
                 if (row_count <= 0):
                     is_end = False
                     log.info("break")
+                redis_conn.setex("redis:key:TOPIC_IDS", topic_id, one_day_time)
         else:
             is_end = False
             log.info("break")
@@ -206,4 +224,3 @@ def update_topic_info_and_get_question_info():
 
 if __name__ == '__main__':
     update_topic_info_and_get_question_info()
-

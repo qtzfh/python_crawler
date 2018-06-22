@@ -2,7 +2,7 @@ import pymysql
 import redis
 import log
 
-hosts = "127.0.0.1"
+hosts = "localhost"
 
 db = pymysql.connect(hosts, "root", "root123", "zhihu_crawler", use_unicode=True, charset="utf8")
 cursor = db.cursor()
@@ -23,6 +23,5 @@ def commit(sql):
 
 
 def redis_connect():
-    pool = redis.ConnectionPool(hosts=hosts, port=6379)
-    redis_conn = redis.Redis(connection_pool=pool)
+    redis_conn = redis.Redis(host=hosts, port=6379, password="")
     return redis_conn
