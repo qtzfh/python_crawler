@@ -189,8 +189,8 @@ def update_topic_info_and_get_question_info():
         zhihu_main.get_topic_list(topic_id, 0, 20)
         row_count = zhihu_main.question_cursor.rowcount
         if (row_count > 0):
-            for topic_id in zhihu_main.question_cursor.fetchall():
-                topic_id = topic_id[0]
+            for topic_info in zhihu_main.question_cursor.fetchall():
+                topic_id = topic_info[0]
                 try:
                     handle_topic_info(topic_id)
                 except(EOFError):

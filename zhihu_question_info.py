@@ -13,7 +13,7 @@ def get_href_detail(question_id):
             soup = BeautifulSoup(resp.text)
             if soup.find_all("button", {"type": "submit"}) != None and soup.find_all("button",
                                                                                      {"type": "submit"}).__len__() > 0:
-                resp = zhihu_main.request_info("https://www.zhihu.com/question/%s" % (question_id))
+                resp = common_request.session_get_sleep_three("https://www.zhihu.com/question/%s" % (question_id))
                 soup = BeautifulSoup(resp.text)
             if (soup.find_all("h4", {"class": "List-headerText"}) != None and soup.find_all("h4", {
                 "class": "List-headerText"}).__len__() > 0):
@@ -65,4 +65,4 @@ def insert_question_info():
 
 
 if __name__ == '__main__':
-    insert_question_info()
+    get_href_detail('19662542')
