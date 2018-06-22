@@ -127,7 +127,7 @@ def insert_question_and_relation(question_titles, question_ids, topic_id):
         insert_question_sql = "insert into zhihu_question(id,title,create_time,update_time) values"
         insert_relation_sql = "insert into zhihu_topic_question_relation(topic_id,question_id,create_time,update_time) values"
         for i in range(0, len(question_titles)):
-            insert_question_sql += "(%s,'%s',NOW(),NOW())," % (question_ids[i], question_titles[i])
+            insert_question_sql += "(%s,\"%s\",NOW(),NOW())," % (question_ids[i], question_titles[i])
             insert_relation_sql += "(%s,%s,NOW(),NOW())," % (topic_id, question_ids[i])
         insert_question_sql = insert_question_sql[:-1]
         insert_relation_sql = insert_relation_sql[:-1]
@@ -142,8 +142,8 @@ def insert_special_and_relation(special_titles, special_ids, topic_id):
         insert_special_sql = "insert into zhihu_special(special_id,title,create_time,update_time) values"
         insert_special_relation_sql = "insert into zhihu_topic_special_relation(topic_id,special_id,create_time,update_time) VALUES "
         for i in range(0, len(special_titles)):
-            insert_special_sql += "(%s,'%s',NOW(),NOW())," % (special_ids[i], special_titles[i])
-            insert_special_relation_sql += "(%s,'%s',NOW(),NOW())," % (topic_id, special_ids[i])
+            insert_special_sql += "(%s,\"%s\",NOW(),NOW())," % (special_ids[i], special_titles[i])
+            insert_special_relation_sql += "(%s,\"%s\",NOW(),NOW())," % (topic_id, special_ids[i])
         insert_special_sql = insert_special_sql[:-1]
         insert_special_relation_sql = insert_special_relation_sql[:-1]
         insert_special_sql += "on DUPLICATE key UPDATE update_time=values(update_time)"
