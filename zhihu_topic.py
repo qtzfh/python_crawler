@@ -6,6 +6,7 @@ import zhihu_main
 
 one_day_time = 24 * 60 * 60 * 1000
 
+
 # 根据href获取每个href的详情
 def get_href_detail(question_id):
     log.info("get_href_detail:" + question_id)
@@ -99,6 +100,7 @@ def get_topic_info_first(topic_id):
 
 # 获取之后的信息
 def get_topic_info_next(url):
+    log.info("get_topic_info_next")
     resp = common_request.request_get_sleep_one(url)
     resp_json = resp.json()
     is_end = resp_json['paging']['is_end']
@@ -177,12 +179,14 @@ def handle_topic_info(topic_id):
     while (True):
         is_end, url, question_titles, question_ids, special_titles, special_ids = get_topic_info_next(url)
         offset += 10
-        question_sql_ids.append(question_ids)
-        question_sql_titles.append(question_titles)
-        special_sql_ids.append(special_ids)
-        special_sql_titles.append(special_titles)
+        for i in range(0,len(question_ids)):
+            question_sql_ids.append(question_ids[i])
+            question_sql_titles.append(question_titles[i])
+        for i in range(0,len(special_ids)):
+            special_sql_ids.append(special_ids[i])
+            special_sql_titles.append(special_titles[i])
         # 每10次添加一次
-        if offset % 100 == 0:
+        if offset % 100 == 5:
             insert_question_and_relation(question_sql_titles, question_sql_ids, topic_id)
             insert_special_and_relation(special_sql_titles, special_sql_ids, topic_id)
         if is_end != False:
@@ -213,9 +217,6 @@ def update_topic_info_and_get_question_info():
                 except(EOFError):
                     log.error(topic_id)
                     log.error(EOFError)
-                if (row_count <= 0):
-                    is_end = False
-                    log.info("break")
                 redis_conn.setex("redis:key:TOPIC_IDS", topic_id, one_day_time)
         else:
             is_end = False
