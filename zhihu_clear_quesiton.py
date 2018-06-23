@@ -13,7 +13,8 @@ def getYesterday():
 # 输出
 # 获取昨天的task_id
 def get_zhihu_question_info():
-    select_sql = "select question_id from zhihu_question_info where read_num<20000 AND follow_num <1000 and answer_num<100 and task_day='2018-06-21' and is_delete=1"
+    select_sql = "select question_id from zhihu_question_info where read_num<50000 AND follow_num <1000 and " \
+                 "answer_num<100 and task_day='%s' and is_delete=1"%(getYesterday())
     server_connection.commit(select_sql)
     question_cursor = server_connection.cursor
     row_count = question_cursor.rowcount
