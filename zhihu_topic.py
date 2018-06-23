@@ -71,15 +71,15 @@ def get_topic_info_first(topic_id):
     url = "https://www.zhihu.com/topic/%s/top-answers" % (str(topic_id))
     resp = common_request.request_get_sleep_one(url)
     soup = BeautifulSoup(resp.text)
+    question_titles = []
+    question_ids = []
+    # 知乎专栏
+    special_titles = []
+    special_ids = []
     if soup.find_all("strong", {"class": "NumberBoard-itemValue"}) != None and soup.find_all("strong", {
         "class": "NumberBoard-itemValue"}).__len__() > 0:
         follow_num = soup.find_all("strong", {"class": "NumberBoard-itemValue"})[0].string
         question_num = soup.find_all("strong", {"class": "NumberBoard-itemValue"})[1].string
-        question_titles = []
-        question_ids = []
-        # 知乎专栏
-        special_titles = []
-        special_ids = []
         for title_info in soup.find_all("a", {"data-za-detail-view-element_name": "Title"}):
             if title_info.get('href').find('zhuanlan.zhihu.com') > 0:
                 special_titles.append(title_info.string)
@@ -95,7 +95,7 @@ def get_topic_info_first(topic_id):
         question_num = question_num.replace(',', '')
         return topic_name, follow_num, question_num, question_titles, question_ids, special_titles, special_ids
     else:
-        return None, 0, 0
+        return None, 0, 0, question_titles, question_ids, special_titles, special_ids
 
 
 # 获取之后的信息
@@ -167,36 +167,42 @@ def handle_topic_info(topic_id):
     # update_topic_info(topic_name, follow_num, question_num, topic_id)
     insert_question_and_relation(question_titles, question_ids, topic_id)
     insert_special_and_relation(special_titles, special_ids, topic_id)
-    # 处理首页之后的数据
-    offset = 5
-    url = "https://www.zhihu.com/api/v4/topics/%s/feeds/essence?include=data[?(target.type=topic_sticky_module)].target.data[?(target.type=answer)].target.content,relationship.is_authorized,is_author,voting,is_thanked,is_nothelp;data[?(target.type=topic_sticky_module)].target.data[?(target.type=answer)].target.is_normal,comment_count,voteup_count,content,relevant_info,excerpt.author.badge[?(type=best_answerer)].topics;data[?(target.type=topic_sticky_module)].target.data[?(target.type=article)].target.content,voteup_count,comment_count,voting,author.badge[?(type=best_answerer)].topics;data[?(target.type=topic_sticky_module)].target.data[?(target.type=people)].target.answer_count,articles_count,gender,follower_count,is_followed,is_following,badge[?(type=best_answerer)].topics;data[?(target.type=answer)].target.content,relationship.is_authorized,is_author,voting,is_thanked,is_nothelp;data[?(target.type=answer)].target.author.badge[?(type=best_answerer)].topics;data[?(target.type=article)].target.content,author.badge[?(type=best_answerer)].topics;data[?(target.type=question)].target.comment_count&limit=10&offset=%s" % (
-        topic_id, offset)
-    # 最终用于存储，最后提交sql使用，方式sql提交太频繁，导致数据库压力太大
-    question_sql_ids = []
-    question_sql_titles = []
-    special_sql_ids = []
-    special_sql_titles = []
-    while (True):
-        is_end, url, question_titles, question_ids, special_titles, special_ids = get_topic_info_next(url)
-        offset += 10
-        for i in range(0,len(question_ids)):
-            question_sql_ids.append(question_ids[i])
-            question_sql_titles.append(question_titles[i])
-        for i in range(0,len(special_ids)):
-            special_sql_ids.append(special_ids[i])
-            special_sql_titles.append(special_titles[i])
-        # 每10次添加一次
-        if offset % 100 == 5:
-            insert_question_and_relation(question_sql_titles, question_sql_ids, topic_id)
-            insert_special_and_relation(special_sql_titles, special_sql_ids, topic_id)
-        if is_end != False:
-            log.info("break")
-            break
-        if offset >= 2000:
-            log.info("break")
-            break
-    insert_question_and_relation(question_sql_titles, question_sql_ids, topic_id)
-    insert_special_and_relation(special_sql_titles, special_sql_ids, topic_id)
+    if len(question_ids) > 0 and len(special_ids) > 0:
+        # 处理首页之后的数据
+        offset = 5
+        url = "https://www.zhihu.com/api/v4/topics/%s/feeds/essence?include=data[?(target.type=topic_sticky_module)].target.data[?(target.type=answer)].target.content,relationship.is_authorized,is_author,voting,is_thanked,is_nothelp;data[?(target.type=topic_sticky_module)].target.data[?(target.type=answer)].target.is_normal,comment_count,voteup_count,content,relevant_info,excerpt.author.badge[?(type=best_answerer)].topics;data[?(target.type=topic_sticky_module)].target.data[?(target.type=article)].target.content,voteup_count,comment_count,voting,author.badge[?(type=best_answerer)].topics;data[?(target.type=topic_sticky_module)].target.data[?(target.type=people)].target.answer_count,articles_count,gender,follower_count,is_followed,is_following,badge[?(type=best_answerer)].topics;data[?(target.type=answer)].target.content,relationship.is_authorized,is_author,voting,is_thanked,is_nothelp;data[?(target.type=answer)].target.author.badge[?(type=best_answerer)].topics;data[?(target.type=article)].target.content,author.badge[?(type=best_answerer)].topics;data[?(target.type=question)].target.comment_count&limit=10&offset=%s" % (
+            topic_id, offset)
+        # 最终用于存储，最后提交sql使用，方式sql提交太频繁，导致数据库压力太大
+        question_sql_ids = []
+        question_sql_titles = []
+        special_sql_ids = []
+        special_sql_titles = []
+        while (True):
+            try:
+                is_end, url, question_titles, question_ids, special_titles, special_ids = get_topic_info_next(url)
+            except:
+                log.error("获取之后的数据失败")
+                break
+            offset += 10
+            for i in range(0, len(question_ids)):
+                question_sql_ids.append(question_ids[i])
+                question_sql_titles.append(question_titles[i].replace("\"","'"))
+            for i in range(0, len(special_ids)):
+                special_sql_ids.append(special_ids[i])
+                special_sql_titles.append(special_titles[i].replace("\"","'"))
+            # 每10次添加一次
+            if offset % 100 == 5:
+                insert_question_and_relation(question_sql_titles, question_sql_ids, topic_id)
+                insert_special_and_relation(special_sql_titles, special_sql_ids, topic_id)
+            if is_end != False:
+                log.info("break")
+                break
+            if offset >= 2000:
+                log.info("break")
+                break
+        insert_question_and_relation(question_sql_titles, question_sql_ids, topic_id)
+        insert_special_and_relation(special_sql_titles, special_sql_ids, topic_id)
+
 
 
 # 根据topic_id，更新话题信息并且获取topic下精华问题
