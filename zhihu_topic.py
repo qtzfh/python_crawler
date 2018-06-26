@@ -3,8 +3,21 @@ import log
 import server_connection
 import common_request
 import zhihu_main
+import threading
+import re
 
 one_day_time = 24 * 60 * 60 * 1000
+
+emoji_pattern = re.compile("["
+                           u"\U0001F600-\U0001F64F"  # emoticons
+                           u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                           u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                           u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                           "]+", flags=re.UNICODE)
+
+
+def remove_emoji(text):
+    return emoji_pattern.sub(r'', text)
 
 
 # 根据href获取每个href的详情
@@ -127,7 +140,9 @@ def insert_question_and_relation(question_titles, question_ids, topic_id):
         insert_question_sql = "insert into zhihu_question(id,title,create_time,update_time) values"
         insert_relation_sql = "insert into zhihu_topic_question_relation(topic_id,question_id,create_time,update_time) values"
         for i in range(0, len(question_titles)):
-            insert_question_sql += "(%s,\"%s\",NOW(),NOW())," % (question_ids[i], question_titles[i])
+            question_title = question_titles[i].replace("\"", "'")
+            question_title = remove_emoji(question_title)
+            insert_question_sql += "(%s,\"%s\",NOW(),NOW())," % (question_ids[i], question_title)
             insert_relation_sql += "(%s,%s,NOW(),NOW())," % (topic_id, question_ids[i])
         insert_question_sql = insert_question_sql[:-1]
         insert_relation_sql = insert_relation_sql[:-1]
@@ -142,7 +157,9 @@ def insert_special_and_relation(special_titles, special_ids, topic_id):
         insert_special_sql = "insert into zhihu_special(special_id,title,create_time,update_time) values"
         insert_special_relation_sql = "insert into zhihu_topic_special_relation(topic_id,special_id,create_time,update_time) VALUES "
         for i in range(0, len(special_titles)):
-            insert_special_sql += "(%s,\"%s\",NOW(),NOW())," % (special_ids[i], special_titles[i])
+            special_title = special_titles[i].replace("\"", "'")
+            special_title = remove_emoji(special_title)
+            insert_special_sql += "(%s,\"%s\",NOW(),NOW())," % (special_ids[i], special_title)
             insert_special_relation_sql += "(%s,\"%s\",NOW(),NOW())," % (topic_id, special_ids[i])
         insert_special_sql = insert_special_sql[:-1]
         insert_special_relation_sql = insert_special_relation_sql[:-1]
@@ -186,15 +203,15 @@ def handle_topic_info(topic_id):
             offset += 10
             for i in range(0, len(question_ids)):
                 question_sql_ids.append(question_ids[i])
-                question_sql_titles.append(question_titles[i].replace("\"","'"))
+                question_sql_titles.append(question_titles[i])
             for i in range(0, len(special_ids)):
                 special_sql_ids.append(special_ids[i])
-                special_sql_titles.append(special_titles[i].replace("\"","'"))
+                special_sql_titles.append(special_titles[i])
             # 每10次添加一次
-            if offset % 100 == 5:
+            if offset % 50 == 5:
                 insert_question_and_relation(question_sql_titles, question_sql_ids, topic_id)
                 insert_special_and_relation(special_sql_titles, special_sql_ids, topic_id)
-            if is_end != False:
+            if is_end != False or (len(question_titles) < 0 or len(special_titles) < 0):
                 log.info("break")
                 break
             if offset >= 2000:
@@ -202,7 +219,6 @@ def handle_topic_info(topic_id):
                 break
         insert_question_and_relation(question_sql_titles, question_sql_ids, topic_id)
         insert_special_and_relation(special_sql_titles, special_sql_ids, topic_id)
-
 
 
 # 根据topic_id，更新话题信息并且获取topic下精华问题
@@ -227,6 +243,10 @@ def update_topic_info_and_get_question_info():
         else:
             is_end = False
             log.info("break")
+
+
+def test():
+    server_connection.app.run()
 
 
 if __name__ == '__main__':
