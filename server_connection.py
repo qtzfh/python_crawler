@@ -1,8 +1,14 @@
 import pymysql
 import redis
 import log
+from flask import Flask
+app = Flask(__name__)
 
-hosts = "localhost"
+@app.route('/')
+def hello_world():
+    return 'Hello World!'
+
+hosts = "127.0.0.1"
 
 db = pymysql.connect(hosts, "root", "root123", "zhihu_crawler", use_unicode=True, charset="utf8")
 cursor = db.cursor()
