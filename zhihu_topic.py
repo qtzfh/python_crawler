@@ -212,7 +212,7 @@ def handle_topic_info(topic_id):
                 special_sql_ids.append(special_ids[i])
                 special_sql_titles.append(special_titles[i])
             # 每10次添加一次
-            if offset % 50 == 5:
+            if offset % 100 == 5:
                 insert_question_and_relation(question_sql_titles, question_sql_ids, topic_id)
                 insert_special_and_relation(special_sql_titles, special_sql_ids, topic_id)
             if is_end != False or (len(question_titles) < 0 or len(special_titles) < 0):
@@ -249,6 +249,11 @@ def update_topic_info_and_get_question_info():
             is_end = False
             log.info("break")
 
+def test():
+    server_connection.app.run()
 
 if __name__ == '__main__':
+    t = threading.Thread(target=test)
+    t.setDaemon(True)
+    t.start()
     update_topic_info_and_get_question_info()
